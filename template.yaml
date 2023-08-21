@@ -19,6 +19,65 @@ Resources:
       PathPart: 'mock'
       RestApiId: !Ref UnicornStatsApi
 
+  WellKnownResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      ParentId: !GetAtt UnicornStatsApi.RootResourceId
+      PathPart: '.well-known'
+      RestApiId: !Ref UnicornStatsApi
+
+  AIPluginResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      ParentId: !Ref WellKnownResource
+      PathPart: 'ai-plugin.json'
+      RestApiId: !Ref UnicornStatsApi
+
+  PluginResponseMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      # ApiKeyRequired: false
+      AuthorizationType: NONE
+      HttpMethod: ANY
+      Integration:
+        ConnectionType: INTERNET #Default
+        IntegrationResponses:
+          - ResponseTemplates:
+              application/json: |
+                {
+                    "schema_version": "v1",
+                    "name_for_human": "TODO List (No Auth)",
+                    "name_for_model": "todo",
+                    "description_for_human": "Manage your TODO list. You can add, remove and view your TODOs.",
+                    "description_for_model": "Plugin for managing a TODO list, you can add, remove and view your TODOs.",
+                    "auth": {
+                        "type": "none"
+                    },
+                    "api": {
+                        "type": "openapi",
+                        "url": "PLUGIN_HOSTNAME/openapi.yaml"
+                    },
+                    "logo_url": "PLUGIN_HOSTNAME/logo.png",
+                    "contact_email": "support@example.com",
+                    "legal_info_url": "https://example.com/legal"
+                }
+            SelectionPattern: '2\d{2}'
+            StatusCode: 200
+        PassthroughBehavior: WHEN_NO_TEMPLATES
+        RequestTemplates:
+          application/json: "{\"statusCode\": 200}"
+        Type: MOCK
+        TimeoutInMillis: 29000
+      MethodResponses:
+        - ResponseModels:
+            application/json: !Ref ApiGatewayModel
+          StatusCode: 200
+          ResponseParameters:
+            method.response.header.Content-Type: "application/json"
+      OperationName: 'PluginResponse'
+      ResourceId: !Ref AIPluginResource
+      RestApiId: !Ref UnicornStatsApi
+
   ApiGatewayMethod:
     Type: AWS::ApiGateway::Method
     Properties:
@@ -63,14 +122,15 @@ Resources:
     Type: AWS::ApiGateway::Stage
     Properties:
       DeploymentId: !Ref ApiGatewayDeployment
-      Description: Mock API Stage v0
+      Description: Mock API Stage v4
       RestApiId: !Ref UnicornStatsApi
-      StageName: 'v1'
+      StageName: 'v4'
 
   ApiGatewayDeployment:
     Type: AWS::ApiGateway::Deployment
     DependsOn: 
      - ApiGatewayMethod
+     - PluginResponseMethod
     Properties:
       Description: Mock API Deployment
       RestApiId: !Ref UnicornStatsApi
