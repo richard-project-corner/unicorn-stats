@@ -1,0 +1,76 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Unicorn Stats API infrastructure 
+
+Resources:
+  UnicornStatsApi:
+    Type: AWS::ApiGateway::RestApi
+    Properties:
+      # ApiKeySourceType: HEADER
+      Description: REST API for Unicorn Stats
+      EndpointConfiguration:
+        Types:
+          - EDGE
+      Name: mock-api
+
+  ApiGatewayResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      ParentId: !GetAtt UnicornStatsApi.RootResourceId
+      PathPart: 'mock'
+      RestApiId: !Ref UnicornStatsApi
+
+  ApiGatewayMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      # ApiKeyRequired: false
+      AuthorizationType: NONE
+      HttpMethod: POST
+      Integration:
+        ConnectionType: INTERNET #Default
+        IntegrationResponses:
+          - ResponseTemplates:
+              application/json: "{\"message\": \"OK\"}"
+            SelectionPattern: '2\d{2}'
+            StatusCode: 200
+          - ResponseTemplates:
+              application/json: "{\"message\": \"Internal Server Error\"}"
+            SelectionPattern: '5\d{2}'
+            StatusCode: 500
+        PassthroughBehavior: WHEN_NO_TEMPLATES
+        RequestTemplates:
+          application/json: "{\"statusCode\": 200}"
+        Type: MOCK
+        TimeoutInMillis: 29000
+      MethodResponses:
+        - ResponseModels:
+            application/json: !Ref ApiGatewayModel
+          StatusCode: 200
+        - ResponseModels:
+            application/json: !Ref ApiGatewayModel
+          StatusCode: 500
+      OperationName: 'mock'
+      ResourceId: !Ref ApiGatewayResource
+      RestApiId: !Ref UnicornStatsApi
+
+  ApiGatewayModel:
+    Type: AWS::ApiGateway::Model
+    Properties:
+      ContentType: 'application/json'
+      RestApiId: !Ref UnicornStatsApi
+      Schema: {}
+
+  ApiGatewayStage:
+    Type: AWS::ApiGateway::Stage
+    Properties:
+      DeploymentId: !Ref ApiGatewayDeployment
+      Description: Mock API Stage v0
+      RestApiId: !Ref UnicornStatsApi
+      StageName: 'v1'
+
+  ApiGatewayDeployment:
+    Type: AWS::ApiGateway::Deployment
+    DependsOn: 
+     - ApiGatewayMethod
+    Properties:
+      Description: Mock API Deployment
+      RestApiId: !Ref UnicornStatsApi
