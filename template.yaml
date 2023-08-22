@@ -12,26 +12,97 @@ Resources:
           - EDGE
       Name: mock-api
 
-  ApiGatewayResource:
-    Type: AWS::ApiGateway::Resource
-    Properties:
-      ParentId: !GetAtt UnicornStatsApi.RootResourceId
-      PathPart: 'mock'
-      RestApiId: !Ref UnicornStatsApi
-
   WellKnownResource:
     Type: AWS::ApiGateway::Resource
     Properties:
       ParentId: !GetAtt UnicornStatsApi.RootResourceId
       PathPart: '.well-known'
-      RestApiId: !Ref UnicornStatsApi
+      RestApiId: !GetAtt UnicornStatsApi.RestApiId
+
+  UnicornsResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      ParentId: !GetAtt UnicornStatsApi.RootResourceId
+      PathPart: 'unicorns'
+      RestApiId: !GetAtt UnicornStatsApi.RestApiId
+
+  SingleUnicornResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      ParentId: !Ref UnicornsResource
+      PathPart: '{unicorn-id}'
+      RestApiId: !GetAtt UnicornStatsApi.RestApiId
+
+  GetUnicornsMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      AuthorizationType: NONE
+      HttpMethod: GET
+      Integration:
+        ConnectionType: INTERNET
+        IntegrationResponses:
+          - ResponseTemplates:
+              application/json: "{\"message\": \"OK\"}"
+            SelectionPattern: '2\d{2}'
+            StatusCode: 200
+          - ResponseTemplates:
+              application/json: "{\"message\": \"Internal Server Error\"}"
+            SelectionPattern: '5\d{2}'
+            StatusCode: 500
+        PassthroughBehavior: WHEN_NO_TEMPLATES
+        RequestTemplates:
+          application/json: "{\"statusCode\": 200}"
+        Type: MOCK
+        TimeoutInMillis: 29000
+      MethodResponses:
+        - ResponseModels:
+            application/json: !Ref ApiGatewayModel
+          StatusCode: 200
+        - ResponseModels:
+            application/json: !Ref ApiGatewayModel
+          StatusCode: 500
+      OperationName: GetUnicorns
+      ResourceId: !Ref UnicornsResource
+      RestApiId: !GetAtt UnicornStatsApi.RestApiId
+
+  GetSingleUnicornMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      AuthorizationType: NONE
+      HttpMethod: GET
+      Integration:
+        ConnectionType: INTERNET
+        IntegrationResponses:
+          - ResponseTemplates:
+              application/json: "{\"message\": \"OK\"}"
+            SelectionPattern: '2\d{2}'
+            StatusCode: 200
+          - ResponseTemplates:
+              application/json: "{\"message\": \"Internal Server Error\"}"
+            SelectionPattern: '5\d{2}'
+            StatusCode: 500
+        PassthroughBehavior: WHEN_NO_TEMPLATES
+        RequestTemplates:
+          application/json: "{\"statusCode\": 200}"
+        Type: MOCK
+        TimeoutInMillis: 29000
+      MethodResponses:
+        - ResponseModels:
+            application/json: !Ref ApiGatewayModel
+          StatusCode: 200
+        - ResponseModels:
+            application/json: !Ref ApiGatewayModel
+          StatusCode: 500
+      OperationName: GetUnicornById
+      ResourceId: !Ref SingleUnicornResource
+      RestApiId: !GetAtt UnicornStatsApi.RestApiId
 
   AIPluginResource:
     Type: AWS::ApiGateway::Resource
     Properties:
       ParentId: !Ref WellKnownResource
       PathPart: 'ai-plugin.json'
-      RestApiId: !Ref UnicornStatsApi
+      RestApiId: !GetAtt UnicornStatsApi.RestApiId
 
   PluginResponseMethod:
     Type: AWS::ApiGateway::Method
@@ -76,61 +147,36 @@ Resources:
             method.response.header.Content-Type: "application/json"
       OperationName: 'PluginResponse'
       ResourceId: !Ref AIPluginResource
-      RestApiId: !Ref UnicornStatsApi
-
-  ApiGatewayMethod:
-    Type: AWS::ApiGateway::Method
-    Properties:
-      # ApiKeyRequired: false
-      AuthorizationType: NONE
-      HttpMethod: POST
-      Integration:
-        ConnectionType: INTERNET #Default
-        IntegrationResponses:
-          - ResponseTemplates:
-              application/json: "{\"message\": \"OK\"}"
-            SelectionPattern: '2\d{2}'
-            StatusCode: 200
-          - ResponseTemplates:
-              application/json: "{\"message\": \"Internal Server Error\"}"
-            SelectionPattern: '5\d{2}'
-            StatusCode: 500
-        PassthroughBehavior: WHEN_NO_TEMPLATES
-        RequestTemplates:
-          application/json: "{\"statusCode\": 200}"
-        Type: MOCK
-        TimeoutInMillis: 29000
-      MethodResponses:
-        - ResponseModels:
-            application/json: !Ref ApiGatewayModel
-          StatusCode: 200
-        - ResponseModels:
-            application/json: !Ref ApiGatewayModel
-          StatusCode: 500
-      OperationName: 'mock'
-      ResourceId: !Ref ApiGatewayResource
-      RestApiId: !Ref UnicornStatsApi
+      RestApiId: !GetAtt UnicornStatsApi.RestApiId
 
   ApiGatewayModel:
     Type: AWS::ApiGateway::Model
     Properties:
       ContentType: 'application/json'
-      RestApiId: !Ref UnicornStatsApi
+      RestApiId: !GetAtt UnicornStatsApi.RestApiId
       Schema: {}
 
   ApiGatewayStage:
     Type: AWS::ApiGateway::Stage
     Properties:
       DeploymentId: !Ref ApiGatewayDeployment
-      Description: Mock API Stage v4
-      RestApiId: !Ref UnicornStatsApi
-      StageName: 'v4'
+      Description: Mock API Stage v5
+      RestApiId: !GetAtt UnicornStatsApi.RestApiId
+      StageName: 'v5'
 
   ApiGatewayDeployment:
     Type: AWS::ApiGateway::Deployment
     DependsOn: 
-     - ApiGatewayMethod
+     - GetSingleUnicornMethod
+     - GetUnicornsMethod
      - PluginResponseMethod
     Properties:
       Description: Mock API Deployment
-      RestApiId: !Ref UnicornStatsApi
+      RestApiId: !GetAtt UnicornStatsApi.RestApiId
+Outputs:
+  UnicornStatsApiId:
+    Description: Logical ID for the REST API
+    Value: !GetAtt UnicornStatsApi.RestApiId
+  UnicornStatsStageName:
+    Description: Stage Name for the currently deployd REST API
+    Value: !Ref ApiGatewayStage

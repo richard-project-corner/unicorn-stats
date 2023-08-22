@@ -27,4 +27,8 @@ Actions:
     Configuration:
       # Required - Steps are sequential instructions that run shell commands
       Steps:
-        - Run: aws cloudformation deploy --template-file ./template.yaml --stack-name InfrastructureStack --region us-west-2
+        - Run: export REGION=us-west-2
+        - Run: export STACK_NAME=InfrastructureStack
+        - Run: aws cloudformation deploy --template-file ./template.yaml --stack-name $STACK_NAME --region $REGION
+        # - Run: aws cloudformation describe-stacks --stack-name $STACK_NAME --region $REGION --query "Stacks[0].Outputs[1].OutputValue"
+        # - Run: aws apigateway get-export --rest-api-id $REST_API_ID --stage-name $STAGE_NAME --export-type oas30 --region $REGION
