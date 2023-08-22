@@ -17,6 +17,10 @@ Actions:
       Type: EC2
       # Fleet: fleet-name
     Outputs:
+      Artifacts:
+        - Name: OpenAPISpec
+          Files:
+            - ./openapispec.txt
       AutoDiscoverReports:
         Enabled: false
     Environment:
@@ -30,5 +34,6 @@ Actions:
         - Run: export REGION=us-west-2
         - Run: export STACK_NAME=InfrastructureStack
         - Run: aws cloudformation deploy --template-file ./template.yaml --stack-name $STACK_NAME --region $REGION
-        # - Run: aws cloudformation describe-stacks --stack-name $STACK_NAME --region $REGION --query "Stacks[0].Outputs[1].OutputValue"
-        # - Run: aws apigateway get-export --rest-api-id $REST_API_ID --stage-name $STAGE_NAME --export-type oas30 --region $REGION
+        - Run: REST_API_ID=$(aws cloudformation describe-stacks --stack-name $STACK_NAME --region $REGION --query "Stacks[0].Outputs[?OutputKey=='UnicornStatsApiId'].OutputValue" --output text)
+        - Run: STAGE_NAME=$(aws cloudformation describe-stacks --stack-name $STACK_NAME --region $REGION --query "Stacks[0].Outputs[?OutputKey=='UnicornStatsStageName'].OutputValue" --output text)
+        - Run: aws apigateway get-export --rest-api-id $REST_API_ID --stage-name $STAGE_NAME --export-type oas30 --region $REGION ./openapispec.txt

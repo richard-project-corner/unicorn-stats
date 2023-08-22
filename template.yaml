@@ -160,9 +160,9 @@ Resources:
     Type: AWS::ApiGateway::Stage
     Properties:
       DeploymentId: !Ref ApiGatewayDeployment
-      Description: Mock API Stage v5
+      Description: Mock API Stage v6
       RestApiId: !GetAtt UnicornStatsApi.RestApiId
-      StageName: 'v5'
+      StageName: 'v6'
 
   ApiGatewayDeployment:
     Type: AWS::ApiGateway::Deployment
