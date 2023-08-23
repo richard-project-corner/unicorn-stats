@@ -173,6 +173,7 @@ Resources:
     Properties:
       Description: Mock API Deployment
       RestApiId: !GetAtt UnicornStatsApi.RestApiId
+
 Outputs:
   UnicornStatsApiId:
     Description: Logical ID for the REST API
