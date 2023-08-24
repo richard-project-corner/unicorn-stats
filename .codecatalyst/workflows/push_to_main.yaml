@@ -37,8 +37,3 @@ Actions:
         - Run: REST_API_ID=$(aws cloudformation describe-stacks --stack-name $STACK_NAME --region $REGION --query "Stacks[0].Outputs[?OutputKey=='UnicornStatsApiId'].OutputValue" --output text)
         - Run: STAGE_NAME=$(aws cloudformation describe-stacks --stack-name $STACK_NAME --region $REGION --query "Stacks[0].Outputs[?OutputKey=='UnicornStatsStageName'].OutputValue" --output text)
         - Run: aws apigateway get-export --rest-api-id $REST_API_ID --stage-name $STAGE_NAME --export-type oas30 --region $REGION ./openapispec.txt
-    Outputs:
-      Artifacts:
-        - Name: UhOhSpaghettiOs
-          Files:
-            - ./ChefBoyardi.txt
