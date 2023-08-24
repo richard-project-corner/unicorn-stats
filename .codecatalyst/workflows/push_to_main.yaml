@@ -1,7 +1,6 @@
 Name: Workflow_a8c6
 SchemaVersion: "1.0"
 
-# Optional - Set automatic triggers.
 Triggers:
   - Type: Push
     Branches:
@@ -15,12 +14,12 @@ Actions:
         - WorkflowSource
     Compute:
       Type: EC2
-      # Fleet: fleet-name
     Outputs:
       Artifacts:
         - Name: OpenAPISpec
           Files:
             - ./openapispec.txt
+            - ./template_out.yaml
       AutoDiscoverReports:
         Enabled: false
     Environment:
@@ -33,7 +32,8 @@ Actions:
       Steps:
         - Run: export REGION=us-west-2
         - Run: export STACK_NAME=InfrastructureStack
-        - Run: aws cloudformation deploy --template-file ./template.yaml --stack-name $STACK_NAME --region $REGION
+        - Run: python ./pre-process-template.py
+        - Run: aws cloudformation deploy --template-file ./template_out.yaml --stack-name $STACK_NAME --region $REGION
         - Run: REST_API_ID=$(aws cloudformation describe-stacks --stack-name $STACK_NAME --region $REGION --query "Stacks[0].Outputs[?OutputKey=='UnicornStatsApiId'].OutputValue" --output text)
         - Run: STAGE_NAME=$(aws cloudformation describe-stacks --stack-name $STACK_NAME --region $REGION --query "Stacks[0].Outputs[?OutputKey=='UnicornStatsStageName'].OutputValue" --output text)
         - Run: aws apigateway get-export --rest-api-id $REST_API_ID --stage-name $STAGE_NAME --export-type oas30 --region $REGION ./openapispec.txt

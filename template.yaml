@@ -5,7 +5,6 @@ Resources:
   UnicornStatsApi:
     Type: AWS::ApiGateway::RestApi
     Properties:
-      # ApiKeySourceType: HEADER
       Description: REST API for Unicorn Stats
       EndpointConfiguration:
         Types:
@@ -74,7 +73,7 @@ Resources:
         ConnectionType: INTERNET
         IntegrationResponses:
           - ResponseTemplates:
-              application/json: "{\"message\": \"OK\"}"
+              application/json: "{\"unicornName\": \"Amalthea\", \"unicornId\": \"1111-1111-1111\", \"unicornClass\": \"Ethereal\"}"
             SelectionPattern: '2\d{2}'
             StatusCode: 200
           - ResponseTemplates:
@@ -88,10 +87,12 @@ Resources:
         TimeoutInMillis: 29000
       MethodResponses:
         - ResponseModels:
-            application/json: !Ref ApiGatewayModel
+            application/json: !Ref UnicornModel
           StatusCode: 200
+          ResponseParameters:
+            method.response.header.Content-Type: "application/json"
         - ResponseModels:
-            application/json: !Ref ApiGatewayModel
+            application/json: !Ref UnicornModel
           StatusCode: 500
       OperationName: GetUnicornById
       ResourceId: !Ref SingleUnicornResource
@@ -156,15 +157,40 @@ Resources:
       RestApiId: !GetAtt UnicornStatsApi.RestApiId
       Schema: {}
 
-  ApiGatewayStage:
+  UnicornModel:
+    Type: AWS::ApiGateway::Model
+    Properties:
+      ContentType: 'application/json'
+      RestApiId: !GetAtt UnicornStatsApi.RestApiId
+      Name: UnicornModel
+      Schema: {
+        "title": "Unicorn",
+        "type": "object",
+        "properties": {
+          "unicornName": {
+            "type": "string",
+            "description": "The unicorn's name."
+          },
+          "unicornId": {
+            "type": "string",
+            "description": "The unicorn's ID number."
+          },
+          "unicornClass": {
+            "type": "string",
+            "description": "The type of Unicorn."
+          }
+        }
+      }
+
+  ApiGatewayProdStage:
     Type: AWS::ApiGateway::Stage
     Properties:
-      DeploymentId: !Ref ApiGatewayDeployment
-      Description: Mock API Stage v6
+      Description: Prod
+      DeploymentId: !GetAtt PLACEHOLDER_ApiGatewayDeployment_PlACEHOLDER.DeploymentId
       RestApiId: !GetAtt UnicornStatsApi.RestApiId
-      StageName: 'v6'
+      StageName: Prod
 
-  ApiGatewayDeployment:
+  PLACEHOLDER_ApiGatewayDeployment_PlACEHOLDER:
     Type: AWS::ApiGateway::Deployment
     DependsOn: 
      - GetSingleUnicornMethod
@@ -180,4 +206,4 @@ Outputs:
     Value: !GetAtt UnicornStatsApi.RestApiId
   UnicornStatsStageName:
     Description: Stage Name for the currently deployd REST API
-    Value: !Ref ApiGatewayStage
+    Value: !Ref ApiGatewayProdStage
