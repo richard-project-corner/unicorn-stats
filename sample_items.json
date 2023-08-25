@@ -1,0 +1,11 @@
+{
+    "UnicornId": {
+      "S": "1"
+    },
+    "UnicornClass": {
+      "S": "Ethereal"
+    },
+    "UnicornName": {
+      "S": "Amalthea"
+    }
+  }

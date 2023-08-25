@@ -75,14 +75,22 @@ Resources:
         IntegrationResponses:
           - StatusCode: 200
             SelectionPattern: '2\d{2}'
-            # ResponseTemplates:
-            #   application/json: |
-            #     #set($inputRoot = $input.path('$'))
-            #     {
-            #       "unicornId": "$inputRoot.Item.UnicornId.S",
-            #       "unicornName": "$inputRoot.Item.UnicornName.S",
-            #       "unicornClass": "$inputRoot.Item.UnicornClass.S"
-            #     }
+            ResponseTemplates:
+              application/json: |
+                #set($inputRoot = $input.path('$'))
+                {
+                "unicorns": [
+                 #foreach($elem in $inputRoot.Items)
+                 {
+                 "unicornId": "$elem.UnicornId.S",
+                 "unicornName": "$elem.UnicornName.S",
+                 "unicornClass": "$elem.UnicornClass.S"
+                 }#if($foreach.hasNext),
+                 #end
+                #end
+                ]
+                }
+
           - StatusCode: 500
             SelectionPattern: '5\d{2}'
             ResponseTemplates:
@@ -92,17 +100,72 @@ Resources:
           integration.request.header.X-Amz-Target: "'DynamoDB_20120810.Scan'"
           integration.request.header.Content-Type: "'application/x-amz-json-1.0'"
         RequestTemplates:
-          application/json:  |
+          application/json: !Sub |
             {
-                "TableName": "UnicornTable"
+                "TableName": "${UnicornTable}"
             }
         Type: AWS
         Uri: "arn:aws:apigateway:us-west-2:dynamodb:path//"
         TimeoutInMillis: 29000
       MethodResponses:
         - 
+          ResponseModels:
+            application/json: !Ref GetUnicornsResponseModel
+          StatusCode: 200
+          ResponseParameters:
+            method.response.header.Content-Type: "application/json"
+        - 
           # ResponseModels:
           #   application/json: !Ref UnicornModel
+          #   application/json: '{}'
+          StatusCode: 500
+      OperationName: GetUnicorns
+      ResourceId: !Ref UnicornsResource
+      RestApiId: !GetAtt UnicornStatsApi.RestApiId
+
+  PutUnicornMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      AuthorizationType: NONE
+      HttpMethod: POST
+      Integration:
+        Credentials: !GetAtt AdminRole.Arn
+        IntegrationHttpMethod: POST
+        IntegrationResponses:
+          - StatusCode: 200
+            SelectionPattern: '2\d{2}'
+          - StatusCode: 500
+            SelectionPattern: '5\d{2}'
+            ResponseTemplates:
+              application/json: "{\"message\": \"Internal Server Error\"}"
+        PassthroughBehavior: WHEN_NO_MATCH
+        RequestParameters:
+          integration.request.header.X-Amz-Target: "'DynamoDB_20120810.PutItem'"
+          integration.request.header.Content-Type: "'application/x-amz-json-1.0'"
+        RequestTemplates:
+          application/json: !Sub |
+            #set($inputRoot = $input.path('$'))
+            { 
+                "TableName": "${UnicornTable}"
+                "Item": {
+                  "unicornId": {
+                    "S": "$inputRoot.UnicornID"
+                  },
+                  "unicornName": {
+                    "S": "$inputRoot.UnicornName"
+                  },
+                  "unicornClass": {
+                    "S": "$inputRoot.UnicornClass"
+                  }
+                }
+            }
+        Type: AWS
+        Uri: "arn:aws:apigateway:us-west-2:dynamodb:path//"
+        TimeoutInMillis: 29000
+      MethodResponses:
+        - 
+          ResponseModels:
+            application/json: !Ref GetUnicornsResponseModel
           StatusCode: 200
           ResponseParameters:
             method.response.header.Content-Type: "application/json"
@@ -143,9 +206,9 @@ Resources:
           integration.request.header.X-Amz-Target: "'DynamoDB_20120810.GetItem'"
           integration.request.header.Content-Type: "'application/x-amz-json-1.0'"
         RequestTemplates:
-          application/json:  |
+          application/json: !Sub |
             {
-                "TableName": "UnicornTable",
+                "TableName": "${UnicornTable}",
                 "Key": {
                     "UnicornId": {
                         "S": "$input.params('unicorn-id')"
@@ -230,6 +293,26 @@ Resources:
       RestApiId: !GetAtt UnicornStatsApi.RestApiId
       Schema: {}
 
+  GetUnicornsResponseModel:
+    Type: AWS::ApiGateway::Model
+    Properties:
+      ContentType: 'application/json'
+      RestApiId: !GetAtt UnicornStatsApi.RestApiId
+      Name: GetUnicornsResponseModel
+      Schema: {
+        "title": "GetUnicornsResponse",
+        "type": "object",
+        "properties": {
+          "unicorns": {
+            "type": "array",
+            "description": "An array of unicorns",
+            "items": {
+              "$ref": !Sub "https://apigateway.amazonaws.com/restapis/${UnicornStatsApi.RestApiId}/models/${UnicornModel}"
+            }
+          }
+        }
+      }
+
   UnicornModel:
     Type: AWS::ApiGateway::Model
     Properties:
@@ -268,6 +351,7 @@ Resources:
     DependsOn: 
      - GetSingleUnicornMethod
      - GetUnicornsMethod
+     - PutUnicornMethod
      - PluginResponseMethod
     Properties:
       Description: Mock API Deployment

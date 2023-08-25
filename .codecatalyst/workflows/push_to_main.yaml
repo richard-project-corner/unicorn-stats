@@ -28,12 +28,14 @@ Actions:
         - Name: '617267062318'
           Role: CodeCatalystWorkflowDevelopmentRole-CodeCornerProjectCorner
     Configuration:
-      # Required - Steps are sequential instructions that run shell commands
       Steps:
         - Run: export REGION=us-west-2
         - Run: export STACK_NAME=InfrastructureStack
         - Run: python ./pre-process-template.py
-        - Run: aws cloudformation deploy --template-file ./template_out.yaml --stack-name $STACK_NAME --region $REGION --capabilities CAPABILITY_IAM
-        - Run: REST_API_ID=$(aws cloudformation describe-stacks --stack-name $STACK_NAME --region $REGION --query "Stacks[0].Outputs[?OutputKey=='UnicornStatsApiId'].OutputValue" --output text)
-        - Run: STAGE_NAME=$(aws cloudformation describe-stacks --stack-name $STACK_NAME --region $REGION --query "Stacks[0].Outputs[?OutputKey=='UnicornStatsStageName'].OutputValue" --output text)
+        - Run: aws cloudformation deploy --template-file ./template_out.yaml --stack-name $STACK_NAME --region $REGION --capabilities CAPABILITY_IAM --disable-rollback
+        - Run: export REST_API_ID=$(aws cloudformation describe-stacks --stack-name $STACK_NAME --region $REGION --query "Stacks[0].Outputs[?OutputKey=='UnicornStatsApiId'].OutputValue" --output text)
+        - Run: export STAGE_NAME=$(aws cloudformation describe-stacks --stack-name $STACK_NAME --region $REGION --query "Stacks[0].Outputs[?OutputKey=='UnicornStatsStageName'].OutputValue" --output text)
+        - Run: cd unicorn-stats-api
+        - Run: pip install -r tests/requirements.txt --user
+        - Run: python -m pytest tests/integration -v --capture=tee-sys
         - Run: aws apigateway get-export --rest-api-id $REST_API_ID --stage-name $STAGE_NAME --export-type oas30 --region $REGION ./openapispec.txt
