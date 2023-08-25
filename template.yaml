@@ -2,6 +2,38 @@ AWSTemplateFormatVersion: '2010-09-09'
 Description: Unicorn Stats API infrastructure 
 
 Resources:
+  UnicornTable: 
+    Type: AWS::DynamoDB::Table
+    Properties: 
+      AttributeDefinitions: 
+        - 
+          AttributeName: "UnicornId"
+          AttributeType: "S"
+      KeySchema: 
+        - 
+          AttributeName: "UnicornId"
+          KeyType: "HASH"
+      ProvisionedThroughput: 
+        ReadCapacityUnits: "5"
+        WriteCapacityUnits: "5"
+      TableName: UnicornTable
+
+  AdminRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Principal:
+              Service:
+                - "apigateway.amazonaws.com"
+            Action:
+              - "sts:AssumeRole"
+      Path: "/"
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AdministratorAccess
+
   UnicornStatsApi:
     Type: AWS::ApiGateway::RestApi
     Properties:
@@ -38,27 +70,46 @@ Resources:
       AuthorizationType: NONE
       HttpMethod: GET
       Integration:
-        ConnectionType: INTERNET
+        Credentials: !GetAtt AdminRole.Arn
+        IntegrationHttpMethod: POST
         IntegrationResponses:
-          - ResponseTemplates:
-              application/json: "{\"message\": \"OK\"}"
+          - StatusCode: 200
             SelectionPattern: '2\d{2}'
-            StatusCode: 200
-          - ResponseTemplates:
-              application/json: "{\"message\": \"Internal Server Error\"}"
+            # ResponseTemplates:
+            #   application/json: |
+            #     #set($inputRoot = $input.path('$'))
+            #     {
+            #       "unicornId": "$inputRoot.Item.UnicornId.S",
+            #       "unicornName": "$inputRoot.Item.UnicornName.S",
+            #       "unicornClass": "$inputRoot.Item.UnicornClass.S"
+            #     }
+          - StatusCode: 500
             SelectionPattern: '5\d{2}'
-            StatusCode: 500
-        PassthroughBehavior: WHEN_NO_TEMPLATES
+            ResponseTemplates:
+              application/json: "{\"message\": \"Internal Server Error\"}"
+        PassthroughBehavior: WHEN_NO_MATCH
+        RequestParameters:
+          integration.request.header.X-Amz-Target: "'DynamoDB_20120810.Scan'"
+          integration.request.header.Content-Type: "'application/x-amz-json-1.0'"
         RequestTemplates:
-          application/json: "{\"statusCode\": 200}"
-        Type: MOCK
+          application/json:  |
+            {
+                "TableName": "UnicornTable"
+            }
+        Type: AWS
+        Uri: "arn:aws:apigateway:us-west-2:dynamodb:path//"
         TimeoutInMillis: 29000
       MethodResponses:
-        - ResponseModels:
-            application/json: !Ref ApiGatewayModel
+        - 
+          # ResponseModels:
+          #   application/json: !Ref UnicornModel
           StatusCode: 200
-        - ResponseModels:
-            application/json: !Ref ApiGatewayModel
+          ResponseParameters:
+            method.response.header.Content-Type: "application/json"
+        - 
+          # ResponseModels:
+          #   application/json: !Ref UnicornModel
+          #   application/json: '{}'
           StatusCode: 500
       OperationName: GetUnicorns
       ResourceId: !Ref UnicornsResource
@@ -70,29 +121,51 @@ Resources:
       AuthorizationType: NONE
       HttpMethod: GET
       Integration:
-        ConnectionType: INTERNET
+        Credentials: !GetAtt AdminRole.Arn
+        IntegrationHttpMethod: POST
         IntegrationResponses:
-          - ResponseTemplates:
-              application/json: "{\"unicornName\": \"Amalthea\", \"unicornId\": \"1111-1111-1111\", \"unicornClass\": \"Ethereal\"}"
+          - StatusCode: 200
             SelectionPattern: '2\d{2}'
-            StatusCode: 200
-          - ResponseTemplates:
-              application/json: "{\"message\": \"Internal Server Error\"}"
+            ResponseTemplates:
+              application/json: |
+                #set($inputRoot = $input.path('$'))
+                {
+                  "unicornId": "$inputRoot.Item.UnicornId.S",
+                  "unicornName": "$inputRoot.Item.UnicornName.S",
+                  "unicornClass": "$inputRoot.Item.UnicornClass.S"
+                }
+          - StatusCode: 500
             SelectionPattern: '5\d{2}'
-            StatusCode: 500
-        PassthroughBehavior: WHEN_NO_TEMPLATES
+            ResponseTemplates:
+              application/json: "{\"message\": \"Internal Server Error\"}"
+        PassthroughBehavior: WHEN_NO_MATCH
+        RequestParameters:
+          integration.request.header.X-Amz-Target: "'DynamoDB_20120810.GetItem'"
+          integration.request.header.Content-Type: "'application/x-amz-json-1.0'"
         RequestTemplates:
-          application/json: "{\"statusCode\": 200}"
-        Type: MOCK
+          application/json:  |
+            {
+                "TableName": "UnicornTable",
+                "Key": {
+                    "UnicornId": {
+                        "S": "$input.params('unicorn-id')"
+                    }
+                }
+            }
+        Type: AWS
+        Uri: "arn:aws:apigateway:us-west-2:dynamodb:path//"
         TimeoutInMillis: 29000
       MethodResponses:
-        - ResponseModels:
+        - 
+          ResponseModels:
             application/json: !Ref UnicornModel
           StatusCode: 200
           ResponseParameters:
             method.response.header.Content-Type: "application/json"
-        - ResponseModels:
-            application/json: !Ref UnicornModel
+        - 
+          # ResponseModels:
+          #   application/json: !Ref UnicornModel
+          #   application/json: '{}'
           StatusCode: 500
       OperationName: GetUnicornById
       ResourceId: !Ref SingleUnicornResource
