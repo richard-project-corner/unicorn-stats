@@ -309,12 +309,38 @@ Resources:
       ResourceId: !Ref AIPluginResource
       RestApiId: !GetAtt UnicornStatsApi.RestApiId
 
-  # ApiGatewayModel:
-  #   Type: AWS::ApiGateway::Model
-  #   Properties:
-  #     ContentType: 'application/json'
-  #     RestApiId: !GetAtt UnicornStatsApi.RestApiId
-  #     Schema: {}
+  OpenAPIResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      ParentId: !Ref WellKnownResource
+      PathPart: 'oas3.yaml'
+      RestApiId: !GetAtt UnicornStatsApi.RestApiId
+  OpenAPIResponseMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      AuthorizationType: NONE
+      HttpMethod: GET
+      Integration:
+        ConnectionType: INTERNET
+        IntegrationResponses:
+          - ResponseTemplates:
+              application/json: |
+                  someKey: someValue
+            SelectionPattern: '2\d{2}'
+            StatusCode: 200
+        PassthroughBehavior: WHEN_NO_TEMPLATES
+        RequestTemplates:
+          application/json: "{\"statusCode\": 200}"
+        Type: MOCK
+        TimeoutInMillis: 29000
+      MethodResponses:
+        - 
+          StatusCode: 200
+          ResponseParameters:
+            method.response.header.Content-Type: "text/yaml"
+      OperationName: 'OpenAPIResponse'
+      ResourceId: !Ref OpenAPIResource
+      RestApiId: !GetAtt UnicornStatsApi.RestApiId
 
   GetUnicornsResponseModel:
     Type: AWS::ApiGateway::Model
@@ -393,6 +419,7 @@ Resources:
      - GetUnicornsMethod
      - PutUnicornMethod
      - PluginResponseMethod
+     - OpenAPIResponseMethod
     Properties:
       Description: Mock API Deployment
       RestApiId: !GetAtt UnicornStatsApi.RestApiId
