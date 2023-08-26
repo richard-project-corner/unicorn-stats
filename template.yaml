@@ -338,8 +338,8 @@ Resources:
       MethodResponses:
         - 
           StatusCode: 200
-          ResponseParameters:
-            method.response.header.Content-Type: "text/yaml"
+          # ResponseParameters:
+          #   method.response.header.Content-Type: "text/yaml"
       OperationName: 'OpenAPIResponse'
       ResourceId: !Ref OpenAPIResource
       RestApiId: !GetAtt UnicornStatsApi.RestApiId
