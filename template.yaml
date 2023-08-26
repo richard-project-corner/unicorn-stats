@@ -327,6 +327,8 @@ Resources:
               application/json: |
                   someKey: someValue
             SelectionPattern: '2\d{2}'
+            ResponseParameters:
+              integration.response.header.Content-Type: "text/yaml"
             StatusCode: 200
         PassthroughBehavior: WHEN_NO_TEMPLATES
         RequestTemplates:
