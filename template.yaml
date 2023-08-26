@@ -324,7 +324,7 @@ Resources:
         ConnectionType: INTERNET
         IntegrationResponses:
           - ResponseTemplates:
-              application/json: |
+              text/yaml: |
                   someKey: someValue
             SelectionPattern: '2\d{2}'
             ResponseParameters:
