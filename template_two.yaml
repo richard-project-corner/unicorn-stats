@@ -1,0 +1,54 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Unicorn Stats API infrastructure 
+Parameters:
+  RESTAPIID:
+    Type: String
+    Default: w6kfeq70nb
+  WellKnownResourceID:
+    Type: String
+    Default: mfl26w
+Resources:
+
+  OpenAPIResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      ParentId: !Ref WellKnownResourceID
+      PathPart: 'oas3.yaml'
+      RestApiId: !Ref RESTAPIID
+
+  OpenAPIResponseMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      AuthorizationType: NONE
+      HttpMethod: GET
+      Integration:
+        ConnectionType: INTERNET
+        IntegrationResponses:
+          - ResponseTemplates:
+              application/json: |
+                  #set($context.responseOverride.header.Content-Type = 'text/yaml')
+                  YAMLINSERT__PLACEHOLDER__YAMLINSERT
+            SelectionPattern: '2\d{2}'
+            StatusCode: 200
+        PassthroughBehavior: WHEN_NO_TEMPLATES
+        RequestTemplates:
+          application/json: "{\"statusCode\": 200}"
+        Type: MOCK
+        TimeoutInMillis: 29000
+      MethodResponses:
+        - 
+          StatusCode: 200
+          # ResponseParameters:
+          #   Content-Type: "text/yaml"
+      OperationName: 'OpenAPIResponse'
+      ResourceId: !Ref OpenAPIResource
+      RestApiId: !Ref RESTAPIID
+
+  PLACEHOLDER_ApiGatewayDeployment_PlACEHOLDER:
+    Type: AWS::ApiGateway::Deployment
+    DependsOn: 
+     - OpenAPIResponseMethod
+    Properties:
+      Description: Mock API Deployment
+      RestApiId: !Ref RESTAPIID
+      StageName: Prod

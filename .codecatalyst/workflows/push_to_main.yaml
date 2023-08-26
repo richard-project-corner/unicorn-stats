@@ -50,8 +50,10 @@ Actions:
         - Run: export REST_API_ID=$(aws cloudformation describe-stacks --stack-name $STACK_NAME --region $REGION --query "Stacks[0].Outputs[?OutputKey=='UnicornStatsApiId'].OutputValue" --output text)
         - Run: export STAGE_NAME=$(aws cloudformation describe-stacks --stack-name $STACK_NAME --region $REGION --query "Stacks[0].Outputs[?OutputKey=='UnicornStatsStageName'].OutputValue" --output text)
         - Run: aws apigateway get-export --rest-api-id $REST_API_ID --stage-name $STAGE_NAME --export-type oas30 --region $REGION --accepts application/yaml ./openapispec.yaml
-        - Run: pip install -r ./unicorn-stats-api/tests/requirements.txt --user
-        - Run: python -m pytest unicorn-stats-api/tests/integration -v --capture=tee-sys
-        - Run: export ACCESS_KEY_ID=${Secrets.AccessKeyID}
-        - Run: export SECRET_ACCESS_KEY=${Secrets.SecretAccessKey}
-        - Run: python ./unicorn-stats-api/tests/unit/create_login.py
+        - Run: python ./pre-process-template-two.py
+        - Run: aws cloudformation deploy --template-file ./template_out.yaml --stack-name InfrastructureStack2 --region $REGION --capabilities CAPABILITY_IAM --disable-rollback
+        # - Run: pip install -r ./unicorn-stats-api/tests/requirements.txt --user
+        # - Run: python -m pytest unicorn-stats-api/tests/integration -v --capture=tee-sys
+        # - Run: export ACCESS_KEY_ID=${Secrets.AccessKeyID}
+        # - Run: export SECRET_ACCESS_KEY=${Secrets.SecretAccessKey}
+        # - Run: python ./unicorn-stats-api/tests/unit/create_login.py

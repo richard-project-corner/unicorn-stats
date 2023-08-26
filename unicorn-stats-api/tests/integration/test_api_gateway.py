@@ -5,6 +5,7 @@ import uuid
 
 
 import pytest
+import boto3
 import requests
 
 def test_populate_db():
@@ -61,4 +62,26 @@ def test_populate_db():
 #         response = requests.get(f"{api_gateway_base_url}/unicorns/3")
 #         print(response.json())
 #         assert response.json() == myobj
-        
+
+def main():
+    apigw_client = boto3.client('apigateway')
+    preamble = '#set($context.responseOverride.header.Content-Type = \'text/yaml\')'
+    with open('openapispec.yaml','r') as f:
+        open_api = f.read()
+        response = apigw_client.update_integration_response(
+            restApiId='w6kfeq70nb',
+            resourceId='4q2oqt',
+            httpMethod='GET',
+            statusCode='200',
+            patchOperations=[
+                {
+                    'op': 'replace',
+                    'path': '/responseTemplates/application~1json',
+                    'value': f"{preamble}\n{open_api}",
+                    'from': 'string'
+                }
+            ]
+        )
+        print(response)
+if __name__ == "__main__":
+    main()

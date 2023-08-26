@@ -330,11 +330,9 @@ Resources:
         IntegrationResponses:
           - ResponseTemplates:
               application/json: |
-                  #set($context.requestOverride.header.Content-Type = text/yaml)
+                  #set($context.responseOverride.header.Content-Type = 'text/yaml')
                   someKey: someValue
             SelectionPattern: '2\d{2}'
-            # ResponseParameters:
-            #   method.response.header.Content-Type: "'text/yaml'"
             StatusCode: 200
         PassthroughBehavior: WHEN_NO_TEMPLATES
         RequestTemplates:

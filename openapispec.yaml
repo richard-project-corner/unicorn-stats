@@ -1,0 +1,122 @@
+openapi: "3.0.1"
+info:
+  title: "mock-api"
+  description: "REST API for Unicorn Stats"
+  version: "2023-08-26T19:23:03Z"
+servers:
+- url: "https://w6kfeq70nb.execute-api.us-west-2.amazonaws.com/{basePath}"
+  variables:
+    basePath:
+      default: "Prod"
+paths:
+  /.well-known/ai-plugin.json:
+    x-amazon-apigateway-any-method:
+      operationId: "PluginResponse"
+      responses:
+        "200":
+          description: "200 response"
+          headers:
+            Content-Type:
+              schema:
+                type: "string"
+          content: {}
+  /unicorns:
+    get:
+      operationId: "GetUnicorns"
+      responses:
+        "500":
+          description: "500 response"
+          content: {}
+        "200":
+          description: "200 response"
+          headers:
+            Content-Type:
+              schema:
+                type: "string"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GetUnicornsResponseModel"
+    post:
+      operationId: "GetUnicorns"
+      responses:
+        "500":
+          description: "500 response"
+          content: {}
+        "200":
+          description: "200 response"
+          headers:
+            Content-Type:
+              schema:
+                type: "string"
+          content: {}
+  /unicorns/{unicorn-id}:
+    get:
+      operationId: "GetUnicornById"
+      parameters:
+      - name: "unicorn-id"
+        in: "path"
+        required: true
+        schema:
+          type: "string"
+      responses:
+        "500":
+          description: "500 response"
+          content: {}
+        "200":
+          description: "200 response"
+          headers:
+            Content-Type:
+              schema:
+                type: "string"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UnicornModel"
+  /.well-known/oas3.yaml:
+    get:
+      operationId: "OpenAPIResponse"
+      responses:
+        "200":
+          description: "200 response"
+          content: {}
+components:
+  schemas:
+    UnicornModel:
+      title: "Unicorn"
+      type: "object"
+      properties:
+        hornCount:
+          type: "integer"
+          description: "Number of horns the unicorn has"
+        unicornId:
+          type: "string"
+          description: "The unicorn's ID number."
+        color:
+          type: "string"
+          description: "the unicorn's color"
+        temperament:
+          type: "string"
+          description: "how friendly the unicorn is"
+          enum:
+          - "friendly"
+          - "not friendly"
+          - "very not friendly"
+        mass:
+          type: "number"
+          description: "The mass of the unicorn"
+        unicornName:
+          type: "string"
+          description: "The unicorn's name."
+        unicornClass:
+          type: "string"
+          description: "The type of Unicorn."
+    GetUnicornsResponseModel:
+      title: "GetUnicornsResponse"
+      type: "object"
+      properties:
+        unicorns:
+          type: "array"
+          description: "An array of unicorns"
+          items:
+            $ref: "#/components/schemas/UnicornModel"
