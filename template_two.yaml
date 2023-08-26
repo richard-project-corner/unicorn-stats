@@ -1,20 +1,63 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Description: Unicorn Stats API infrastructure 
-Parameters:
-  RESTAPIID:
-    Type: String
-    Default: w6kfeq70nb
-  WellKnownResourceID:
-    Type: String
-    Default: mfl26w
 Resources:
 
   OpenAPIResource:
     Type: AWS::ApiGateway::Resource
     Properties:
-      ParentId: !Ref WellKnownResourceID
+      ParentId: !ImportValue WellKnownResourceId
       PathPart: 'oas3.yaml'
-      RestApiId: !Ref RESTAPIID
+      RestApiId: !ImportValue UnicornStatsApiId
+
+  AIPluginResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      ParentId: !ImportValue WellKnownResourceId
+      PathPart: 'ai-plugin.json'
+      RestApiId: !ImportValue UnicornStatsApiId
+
+  PluginResponseMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      AuthorizationType: NONE
+      HttpMethod: ANY
+      Integration:
+        ConnectionType: INTERNET
+        IntegrationResponses:
+          - ResponseTemplates:
+              application/json: |
+                {
+                    "schema_version": "v1",
+                    "name_for_human": "TODO List (No Auth)",
+                    "name_for_model": "todo",
+                    "description_for_human": "Manage your TODO list. You can add, remove and view your TODOs.",
+                    "description_for_model": "Plugin for managing a TODO list, you can add, remove and view your TODOs.",
+                    "auth": {
+                        "type": "none"
+                    },
+                    "api": {
+                        "type": "openapi",
+                        "url": " https://w6kfeq70nb.execute-api.us-west-2.amazonaws.com/Prod/openapi.yaml"
+                    },
+                    "logo_url": "PLUGIN_HOSTNAME/logo.png",
+                    "contact_email": "support@example.com",
+                    "legal_info_url": "https://example.com/legal"
+                }
+            SelectionPattern: '2\d{2}'
+            StatusCode: 200
+        PassthroughBehavior: WHEN_NO_TEMPLATES
+        RequestTemplates:
+          application/json: "{\"statusCode\": 200}"
+        Type: MOCK
+        TimeoutInMillis: 29000
+      MethodResponses:
+        - 
+          StatusCode: 200
+          ResponseParameters:
+            method.response.header.Content-Type: "application/json"
+      OperationName: 'PluginResponse'
+      ResourceId: !Ref AIPluginResource
+      RestApiId: !ImportValue UnicornStatsApiId
 
   OpenAPIResponseMethod:
     Type: AWS::ApiGateway::Method
@@ -42,13 +85,14 @@ Resources:
           #   Content-Type: "text/yaml"
       OperationName: 'OpenAPIResponse'
       ResourceId: !Ref OpenAPIResource
-      RestApiId: !Ref RESTAPIID
+      RestApiId: !ImportValue UnicornStatsApiId
 
   PLACEHOLDER_ApiGatewayDeployment_PlACEHOLDER:
     Type: AWS::ApiGateway::Deployment
     DependsOn: 
      - OpenAPIResponseMethod
+     - PluginResponseMethod
     Properties:
       Description: Mock API Deployment
-      RestApiId: !Ref RESTAPIID
+      RestApiId: !ImportValue UnicornStatsApiId
       StageName: Prod
