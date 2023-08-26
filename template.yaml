@@ -34,6 +34,11 @@ Resources:
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/AdministratorAccess
 
+  LoggingRole:
+    Type: AWS::ApiGateway::Account
+    Properties: 
+      CloudWatchRoleArn: !GetAtt AdminRole.Arn
+
   UnicornStatsApi:
     Type: AWS::ApiGateway::RestApi
     Properties:
@@ -324,11 +329,12 @@ Resources:
         ConnectionType: INTERNET
         IntegrationResponses:
           - ResponseTemplates:
-              text/yaml: |
+              application/json: |
+                  #set($context.requestOverride.header.Content-Type = text/yaml)
                   someKey: someValue
             SelectionPattern: '2\d{2}'
-            ResponseParameters:
-              method.response.header.Content-Type: "text/yaml"
+            # ResponseParameters:
+            #   method.response.header.Content-Type: "'text/yaml'"
             StatusCode: 200
         PassthroughBehavior: WHEN_NO_TEMPLATES
         RequestTemplates:
@@ -339,7 +345,7 @@ Resources:
         - 
           StatusCode: 200
           # ResponseParameters:
-          #   method.response.header.Content-Type: "text/yaml"
+          #   Content-Type: "text/yaml"
       OperationName: 'OpenAPIResponse'
       ResourceId: !Ref OpenAPIResource
       RestApiId: !GetAtt UnicornStatsApi.RestApiId

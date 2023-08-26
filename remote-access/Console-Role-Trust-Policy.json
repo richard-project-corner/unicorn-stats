@@ -1,0 +1,16 @@
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Sid": "Statement1",
+            "Effect": "Allow",
+            "Principal": {
+                "AWS": [
+                    "arn:aws:iam::617267062318:user/richard-user",
+                    "arn:aws:iam::617267062318:user/RemoteAccessResources-RemoteAccessUser-1ECB2UMYVCSKT"
+                ]
+            },
+            "Action": "sts:AssumeRole"
+        }
+    ]
+}

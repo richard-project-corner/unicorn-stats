@@ -1,0 +1,20 @@
+Resources:
+  MyAccessKey:
+     Type: AWS::IAM::AccessKey
+     Properties: 
+       Serial: 0
+       Status: Active
+       UserName: !Ref RemoteAccessUser
+  RemoteAccessUser:
+    Type: AWS::IAM::User
+    Properties: 
+      ManagedPolicyArns: 
+        - arn:aws:iam::aws:policy/AdministratorAccess
+      Path: /
+Outputs:
+  AccessKey:
+    Description: AccesKey
+    Value: !Ref MyAccessKey
+  SecretAccessKey:
+    Description: SecretAccessKey
+    Value: !GetAtt MyAccessKey.SecretAccessKey
