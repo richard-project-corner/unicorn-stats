@@ -6,6 +6,7 @@ def main():
         with open('openapispec.yaml', 'r') as g:
             open_api_body = g.read()
             open_api_body = open_api_body.replace("\n","\n                  ")
+            open_api_body = open_api_body.replace("$ref","\$ref")
             suffix = ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
             data = file.read()
             data = data.replace("PLACEHOLDER_ApiGatewayDeployment_PlACEHOLDER", f"Deployment{suffix}")
