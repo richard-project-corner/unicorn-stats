@@ -82,9 +82,13 @@ Resources:
                 "unicorns": [
                  #foreach($elem in $inputRoot.Items)
                  {
-                 "unicornId": "$elem.UnicornId.S",
-                 "unicornName": "$elem.UnicornName.S",
-                 "unicornClass": "$elem.UnicornClass.S"
+                  "unicornId": "$inputRoot.Item.UnicornId.S",
+                  "unicornName": "$inputRoot.Item.UnicornName.S",
+                  "unicornClass": "$inputRoot.Item.UnicornClass.S",
+                  "hornCount": "$inputRoot.Item.HornCount.N",
+                  "color": "$inputRoot.Item.Color.S",
+                  "temperament": "$inputRoot.Item.Temperament.S",
+                  "mass": "$inputRoot.Item.Mass.S"
                  }#if($foreach.hasNext),
                  #end
                 #end
@@ -134,6 +138,8 @@ Resources:
         IntegrationResponses:
           - StatusCode: 200
             SelectionPattern: '2\d{2}'
+            ResponseTemplates:
+              application/json: "{}"
           - StatusCode: 500
             SelectionPattern: '5\d{2}'
             ResponseTemplates:
@@ -146,16 +152,28 @@ Resources:
           application/json: !Sub |
             #set($inputRoot = $input.path('$'))
             { 
-                "TableName": "${UnicornTable}"
+                "TableName": "${UnicornTable}",
                 "Item": {
-                  "unicornId": {
-                    "S": "$inputRoot.UnicornID"
+                  "UnicornId": {
+                    "S": "$inputRoot.unicornId"
                   },
-                  "unicornName": {
-                    "S": "$inputRoot.UnicornName"
+                  "UnicornName": {
+                    "S": "$inputRoot.unicornName"
                   },
-                  "unicornClass": {
-                    "S": "$inputRoot.UnicornClass"
+                  "UnicornClass": {
+                    "S": "$inputRoot.unicornClass"
+                  },
+                  "HornCount": {
+                    "N": "$inputRoot.hornCount"
+                  },
+                  "Color": {
+                    "S": "$inputRoot.color"
+                  },
+                  "Temperament": {
+                    "S": "$inputRoot.temperament"
+                  },
+                  "Mass": {
+                    "S": "$inputRoot.mass"
                   }
                 }
             }
@@ -164,8 +182,8 @@ Resources:
         TimeoutInMillis: 29000
       MethodResponses:
         - 
-          ResponseModels:
-            application/json: !Ref GetUnicornsResponseModel
+          # ResponseModels:
+          #   application/json: !Ref GetUnicornsResponseModel
           StatusCode: 200
           ResponseParameters:
             method.response.header.Content-Type: "application/json"
@@ -195,7 +213,11 @@ Resources:
                 {
                   "unicornId": "$inputRoot.Item.UnicornId.S",
                   "unicornName": "$inputRoot.Item.UnicornName.S",
-                  "unicornClass": "$inputRoot.Item.UnicornClass.S"
+                  "unicornClass": "$inputRoot.Item.UnicornClass.S",
+                  "hornCount": "$inputRoot.Item.HornCount.N",
+                  "color": "$inputRoot.Item.Color.S",
+                  "temperament": "$inputRoot.Item.Temperament.S",
+                  "mass": "$inputRoot.Item.Mass.S"
                 }
           - StatusCode: 500
             SelectionPattern: '5\d{2}'
@@ -277,8 +299,9 @@ Resources:
         Type: MOCK
         TimeoutInMillis: 29000
       MethodResponses:
-        - ResponseModels:
-            application/json: !Ref ApiGatewayModel
+        - 
+          # ResponseModels:
+          #   application/json: !Ref ApiGatewayModel
           StatusCode: 200
           ResponseParameters:
             method.response.header.Content-Type: "application/json"
@@ -286,12 +309,12 @@ Resources:
       ResourceId: !Ref AIPluginResource
       RestApiId: !GetAtt UnicornStatsApi.RestApiId
 
-  ApiGatewayModel:
-    Type: AWS::ApiGateway::Model
-    Properties:
-      ContentType: 'application/json'
-      RestApiId: !GetAtt UnicornStatsApi.RestApiId
-      Schema: {}
+  # ApiGatewayModel:
+  #   Type: AWS::ApiGateway::Model
+  #   Properties:
+  #     ContentType: 'application/json'
+  #     RestApiId: !GetAtt UnicornStatsApi.RestApiId
+  #     Schema: {}
 
   GetUnicornsResponseModel:
     Type: AWS::ApiGateway::Model
@@ -334,6 +357,23 @@ Resources:
           "unicornClass": {
             "type": "string",
             "description": "The type of Unicorn."
+          },
+          "hornCount": {
+            "type": "integer",
+            "description": "Number of horns the unicorn has"
+          },
+          "color": {
+            "type": "string",
+            "description": "the unicorn's color"
+          },
+          "temperament": {
+            "type": "string",
+            "enum": ["friendly", "not friendly", "very not friendly"],
+            "description": "how friendly the unicorn is"
+          },
+          "mass": {
+            "type": "number",
+            "description": "The mass of the unicorn"
           }
         }
       }
