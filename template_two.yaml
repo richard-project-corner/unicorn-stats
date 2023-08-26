@@ -5,7 +5,7 @@ Resources:
   OpenAPIResource:
     Type: AWS::ApiGateway::Resource
     Properties:
-      ParentId: !ImportValue WellKnownResourceId
+      ParentId: !ImportValue UnicornStatsApiRootResourceId
       PathPart: 'oas3.yaml'
       RestApiId: !ImportValue UnicornStatsApiId
 
@@ -28,18 +28,18 @@ Resources:
               application/json: |
                 {
                     "schema_version": "v1",
-                    "name_for_human": "TODO List (No Auth)",
-                    "name_for_model": "todo",
-                    "description_for_human": "Manage your TODO list. You can add, remove and view your TODOs.",
-                    "description_for_model": "Plugin for managing a TODO list, you can add, remove and view your TODOs.",
+                    "name_for_human": "Unicorn Stats API (No Auth)",
+                    "name_for_model": "unicorn",
+                    "description_for_human": "Manage your Unicorn Stables. You can fetch stats about your favorite unicorns.",
+                    "description_for_model": "Plugin for managing Unicorn stable, You can fetch stats about your favorite unicorns.",
                     "auth": {
                         "type": "none"
                     },
                     "api": {
                         "type": "openapi",
-                        "url": " https://w6kfeq70nb.execute-api.us-west-2.amazonaws.com/Prod/openapi.yaml"
+                        "url": "https://plugin.chatgpt.rboyd.dev/oas3.yaml"
                     },
-                    "logo_url": "PLUGIN_HOSTNAME/logo.png",
+                    "logo_url": "https://plugin.chatgpt.rboyd.dev/logo.png",
                     "contact_email": "support@example.com",
                     "legal_info_url": "https://example.com/legal"
                 }

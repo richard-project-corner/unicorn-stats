@@ -7,39 +7,39 @@ Triggers:
       - main
 
 Actions:
-  DeployAWSCloudFormationStack_e7:
-    Identifier: aws/cfn-deploy@v1.0.4
-    Configuration:
-      template: ./remote-access/resources.yaml
-      region: us-west-2
-      name: RemoteAccessResources
-    Environment:
-      Connections:
-        - Role: CodeCatalystWorkflowDevelopmentRole-CodeCornerProjectCorner
-          Name: "617267062318"
-      Name: PreProd
-    Inputs:
-      Sources:
-        - WorkflowSource
-  CreateLogin:
-    Identifier: aws/build@v1.0.0
-    Inputs:
-      Sources:
-        - WorkflowSource
-    Compute:
-      Type: EC2
-    Environment:
-      Name: PreProd
-      Connections:
-        - Name: '617267062318'
-          Role: CodeCatalystWorkflowDevelopmentRole-CodeCornerProjectCorner
-    Configuration:
-      Steps:
-        - Run: pip install -r ./unicorn-stats-api/tests/requirements.txt --user
-        - Run: export REGION=us-west-2
-        - Run: export ACCESS_KEY_ID=${Secrets.AccessKeyID}
-        - Run: export SECRET_ACCESS_KEY=${Secrets.SecretAccessKey}
-        - Run: python ./unicorn-stats-api/tests/unit/create_login.py
+  # DeployAWSCloudFormationStack_e7:
+  #   Identifier: aws/cfn-deploy@v1.0.4
+  #   Configuration:
+  #     template: ./remote-access/resources.yaml
+  #     region: us-west-2
+  #     name: RemoteAccessResources
+  #   Environment:
+  #     Connections:
+  #       - Role: CodeCatalystWorkflowDevelopmentRole-CodeCornerProjectCorner
+  #         Name: "617267062318"
+  #     Name: PreProd
+  #   Inputs:
+  #     Sources:
+  #       - WorkflowSource
+  # CreateLogin:
+  #   Identifier: aws/build@v1.0.0
+  #   Inputs:
+  #     Sources:
+  #       - WorkflowSource
+  #   Compute:
+  #     Type: EC2
+  #   Environment:
+  #     Name: PreProd
+  #     Connections:
+  #       - Name: '617267062318'
+  #         Role: CodeCatalystWorkflowDevelopmentRole-CodeCornerProjectCorner
+  #   Configuration:
+  #     Steps:
+  #       - Run: pip install -r ./unicorn-stats-api/tests/requirements.txt --user
+  #       - Run: export REGION=us-west-2
+  #       - Run: export ACCESS_KEY_ID=${Secrets.AccessKeyID}
+  #       - Run: export SECRET_ACCESS_KEY=${Secrets.SecretAccessKey}
+  #       - Run: python ./unicorn-stats-api/tests/unit/create_login.py
   Deploy:
     Identifier: aws/build@v1.0.0
     Inputs:
@@ -65,11 +65,11 @@ Actions:
         - Run: export REGION=us-west-2
         - Run: export STACK_NAME=InfrastructureStack
         - Run: python ./pre-process-template.py
-        - Run: aws cloudformation deploy --template-file ./template_out.yaml --stack-name $STACK_NAME --region $REGION --capabilities CAPABILITY_IAM --disable-rollback
+        - Run: aws cloudformation deploy --template-file ./template_out.yaml --stack-name $STACK_NAME --region $REGION --capabilities CAPABILITY_IAM
         - Run: export REST_API_ID=$(aws cloudformation describe-stacks --stack-name $STACK_NAME --region $REGION --query "Stacks[0].Outputs[?OutputKey=='UnicornStatsApiId'].OutputValue" --output text)
         - Run: export STAGE_NAME=$(aws cloudformation describe-stacks --stack-name $STACK_NAME --region $REGION --query "Stacks[0].Outputs[?OutputKey=='UnicornStatsStageName'].OutputValue" --output text)
         - Run: aws apigateway get-export --rest-api-id $REST_API_ID --stage-name $STAGE_NAME --export-type oas30 --region $REGION --accepts application/yaml ./openapispec.yaml
         - Run: python ./pre-process-template-two.py
-        - Run: aws cloudformation deploy --template-file ./template_out.yaml --stack-name InfrastructureStack2 --region $REGION --capabilities CAPABILITY_IAM --disable-rollback
+        - Run: aws cloudformation deploy --template-file ./template_out.yaml --stack-name InfrastructureStack2 --region $REGION --capabilities CAPABILITY_IAM
         # - Run: pip install -r ./unicorn-stats-api/tests/requirements.txt --user
         # - Run: python -m pytest unicorn-stats-api/tests/integration -v --capture=tee-sys

@@ -39,6 +39,44 @@ Resources:
     Properties: 
       CloudWatchRoleArn: !GetAtt AdminRole.Arn
 
+  PluginDNS: 
+    Type: AWS::Route53::HostedZone
+    Properties: 
+      HostedZoneConfig: 
+        Comment: 'My hosted zone for ChatGPT Plugin'
+      Name: plugin.chatgpt.rboyd.dev
+
+  UnicornStatsAPIDomainName:
+    Type: AWS::ApiGateway::DomainName
+    Properties:
+      CertificateArn: 'arn:aws:acm:us-east-1:617267062318:certificate/324adff3-46b0-488f-9304-d8511c69d893'
+      DomainName: plugin.chatgpt.rboyd.dev
+      EndpointConfiguration:
+        Types:
+          - EDGE
+  CustomDNSBasePathMapping:
+    Type: AWS::ApiGateway::BasePathMapping
+    Properties: 
+      DomainName: !Ref UnicornStatsAPIDomainName
+      RestApiId: !Ref UnicornStatsApi
+      Stage: !Ref ApiGatewayProdStage
+
+  DeliveryApiRoute53RecordSetGroup:
+    Type: AWS::Route53::RecordSetGroup
+    Properties:
+      HostedZoneId: !GetAtt PluginDNS.Id
+      RecordSets:
+        - Name: plugin.chatgpt.rboyd.dev.
+          Type: A
+          AliasTarget:
+            HostedZoneId: !GetAtt UnicornStatsAPIDomainName.DistributionHostedZoneId
+            DNSName: !GetAtt UnicornStatsAPIDomainName.DistributionDomainName
+        - Name: plugin.chatgpt.rboyd.dev.
+          Type: AAAA
+          AliasTarget:
+            HostedZoneId: !GetAtt UnicornStatsAPIDomainName.DistributionHostedZoneId
+            DNSName: !GetAtt UnicornStatsAPIDomainName.DistributionDomainName
+
   UnicornStatsApi:
     Type: AWS::ApiGateway::RestApi
     Properties:
@@ -87,13 +125,13 @@ Resources:
                 "unicorns": [
                  #foreach($elem in $inputRoot.Items)
                  {
-                  "unicornId": "$inputRoot.Item.UnicornId.S",
-                  "unicornName": "$inputRoot.Item.UnicornName.S",
-                  "unicornClass": "$inputRoot.Item.UnicornClass.S",
-                  "hornCount": "$inputRoot.Item.HornCount.N",
-                  "color": "$inputRoot.Item.Color.S",
-                  "temperament": "$inputRoot.Item.Temperament.S",
-                  "mass": "$inputRoot.Item.Mass.S"
+                  "unicornId": "$elem.UnicornId.S",
+                  "unicornName": "$elem.UnicornName.S",
+                  "unicornClass": "$elem.UnicornClass.S",
+                  "hornCount": "$elem.HornCount.N",
+                  "color": "$elem.Color.S",
+                  "temperament": "$elem.Temperament.S",
+                  "mass": "$elem.Mass.S"
                  }#if($foreach.hasNext),
                  #end
                 #end
@@ -124,9 +162,6 @@ Resources:
           ResponseParameters:
             method.response.header.Content-Type: "application/json"
         - 
-          # ResponseModels:
-          #   application/json: !Ref UnicornModel
-          #   application/json: '{}'
           StatusCode: 500
       OperationName: GetUnicorns
       ResourceId: !Ref UnicornsResource
@@ -355,3 +390,8 @@ Outputs:
     Value: !Ref WellKnownResource
     Export:
       Name: WellKnownResourceId
+  UnicornStatsApiRootResourceId:
+    Description: Logical ID for the REST API
+    Value: !GetAtt UnicornStatsApi.RootResourceId
+    Export:
+      Name: UnicornStatsApiRootResourceId
