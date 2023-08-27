@@ -46,14 +46,23 @@ Resources:
         Comment: 'My hosted zone for ChatGPT Plugin'
       Name: plugin.chatgpt.rboyd.dev
 
+  MyCertificate: 
+    Type: "AWS::CertificateManager::Certificate"
+    DependsOn: 
+     - PluginDNS    
+    Properties: 
+      DomainName: plugin.chatgpt.rboyd.dev
+      ValidationMethod: DNS
+
   UnicornStatsAPIDomainName:
     Type: AWS::ApiGateway::DomainName
     Properties:
-      CertificateArn: 'arn:aws:acm:us-east-1:617267062318:certificate/324adff3-46b0-488f-9304-d8511c69d893'
+      CertificateArn: !Ref MyCertificate
       DomainName: plugin.chatgpt.rboyd.dev
       EndpointConfiguration:
         Types:
-          - EDGE
+          - REGIONAL
+
   CustomDNSBasePathMapping:
     Type: AWS::ApiGateway::BasePathMapping
     Properties: 
@@ -83,7 +92,7 @@ Resources:
       Description: REST API for Unicorn Stats
       EndpointConfiguration:
         Types:
-          - EDGE
+          - REGIONAL
       Name: mock-api
 
   WellKnownResource:
