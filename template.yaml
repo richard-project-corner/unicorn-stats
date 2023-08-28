@@ -2,406 +2,407 @@ AWSTemplateFormatVersion: '2010-09-09'
 Description: Unicorn Stats API infrastructure 
 
 Resources:
-  PluginDNS: 
-    Type: AWS::Route53::HostedZone
+  # PluginDNS: 
+  #   Type: AWS::Route53::HostedZone
+  #   Properties: 
+  #     HostedZoneConfig: 
+  #       Comment: 'My hosted zone for ChatGPT Plugin'
+  #     Name: plugin.chatgpt.rboyd.dev
+  #     DeletionPolicy: Retain # Just because Richard is a dummy
+
+  UnicornTable: 
+    Type: AWS::DynamoDB::Table
     Properties: 
-      HostedZoneConfig: 
-        Comment: 'My hosted zone for ChatGPT Plugin'
-      Name: plugin.chatgpt.rboyd.dev
-      DeletionPolicy: Retain # Just because Richard is a dummy
+      AttributeDefinitions: 
+        - 
+          AttributeName: "UnicornId"
+          AttributeType: "S"
+      KeySchema: 
+        - 
+          AttributeName: "UnicornId"
+          KeyType: "HASH"
+      ProvisionedThroughput: 
+        ReadCapacityUnits: "5"
+        WriteCapacityUnits: "5"
+      TableName: UnicornTable
 
-#   UnicornTable: 
-#     Type: AWS::DynamoDB::Table
-#     Properties: 
-#       AttributeDefinitions: 
-#         - 
-#           AttributeName: "UnicornId"
-#           AttributeType: "S"
-#       KeySchema: 
-#         - 
-#           AttributeName: "UnicornId"
-#           KeyType: "HASH"
-#       ProvisionedThroughput: 
-#         ReadCapacityUnits: "5"
-#         WriteCapacityUnits: "5"
-#       TableName: UnicornTable
+  AdminRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Principal:
+              Service:
+                - "apigateway.amazonaws.com"
+            Action:
+              - "sts:AssumeRole"
+      Path: "/"
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AdministratorAccess
 
-#   AdminRole:
-#     Type: "AWS::IAM::Role"
-#     Properties:
-#       AssumeRolePolicyDocument:
-#         Version: "2012-10-17"
-#         Statement:
-#           - Effect: "Allow"
-#             Principal:
-#               Service:
-#                 - "apigateway.amazonaws.com"
-#             Action:
-#               - "sts:AssumeRole"
-#       Path: "/"
-#       ManagedPolicyArns:
-#         - arn:aws:iam::aws:policy/AdministratorAccess
+  LoggingRole:
+    Type: AWS::ApiGateway::Account
+    Properties: 
+      CloudWatchRoleArn: !GetAtt AdminRole.Arn
 
-#   LoggingRole:
-#     Type: AWS::ApiGateway::Account
-#     Properties: 
-#       CloudWatchRoleArn: !GetAtt AdminRole.Arn
+  MyCertificate: 
+    Type: "AWS::CertificateManager::Certificate"
+    # DependsOn: 
+    #  - PluginDNS    
+    Properties: 
+      DomainName: plugin.chatgpt.rboyd.dev
+      ValidationMethod: DNS
 
-#   MyCertificate: 
-#     Type: "AWS::CertificateManager::Certificate"
-#     DependsOn: 
-#      - PluginDNS    
-#     Properties: 
-#       DomainName: plugin.chatgpt.rboyd.dev
-#       ValidationMethod: DNS
+  UnicornStatsAPIDomainName:
+    Type: AWS::ApiGateway::DomainName
+    Properties:
+      DomainName: plugin.chatgpt.rboyd.dev
+      RegionalCertificateArn: !Ref MyCertificate
+      EndpointConfiguration:
+        Types:
+          - REGIONAL
 
-#   UnicornStatsAPIDomainName:
-#     Type: AWS::ApiGateway::DomainName
-#     Properties:
-#       CertificateArn: !Ref MyCertificate
-#       DomainName: plugin.chatgpt.rboyd.dev
-#       EndpointConfiguration:
-#         Types:
-#           - REGIONAL
+  CustomDNSBasePathMapping:
+    Type: AWS::ApiGateway::BasePathMapping
+    Properties: 
+      DomainName: !Ref UnicornStatsAPIDomainName
+      RestApiId: !Ref UnicornStatsApi
+      Stage: !Ref ApiGatewayProdStage
 
-#   CustomDNSBasePathMapping:
-#     Type: AWS::ApiGateway::BasePathMapping
-#     Properties: 
-#       DomainName: !Ref UnicornStatsAPIDomainName
-#       RestApiId: !Ref UnicornStatsApi
-#       Stage: !Ref ApiGatewayProdStage
+  DeliveryApiRoute53RecordSetGroup:
+    Type: AWS::Route53::RecordSetGroup
+    Properties:
+      # HostedZoneId: !GetAtt PluginDNS.Id
+      HostedZoneId: Z04521522AYC49PZJROC8
+      RecordSets:
+        - Name: plugin.chatgpt.rboyd.dev.
+          Type: A
+          AliasTarget:
+            HostedZoneId: !GetAtt UnicornStatsAPIDomainName.RegionalHostedZoneId
+            DNSName: !GetAtt UnicornStatsAPIDomainName.RegionalDomainName
+        - Name: plugin.chatgpt.rboyd.dev.
+          Type: AAAA
+          AliasTarget:
+            HostedZoneId: !GetAtt UnicornStatsAPIDomainName.RegionalHostedZoneId
+            DNSName: !GetAtt UnicornStatsAPIDomainName.RegionalDomainName
 
-#   DeliveryApiRoute53RecordSetGroup:
-#     Type: AWS::Route53::RecordSetGroup
-#     Properties:
-#       HostedZoneId: !GetAtt PluginDNS.Id
-#       RecordSets:
-#         - Name: plugin.chatgpt.rboyd.dev.
-#           Type: A
-#           AliasTarget:
-#             HostedZoneId: !GetAtt UnicornStatsAPIDomainName.DistributionHostedZoneId
-#             DNSName: !GetAtt UnicornStatsAPIDomainName.DistributionDomainName
-#         - Name: plugin.chatgpt.rboyd.dev.
-#           Type: AAAA
-#           AliasTarget:
-#             HostedZoneId: !GetAtt UnicornStatsAPIDomainName.DistributionHostedZoneId
-#             DNSName: !GetAtt UnicornStatsAPIDomainName.DistributionDomainName
+  UnicornStatsApi:
+    Type: AWS::ApiGateway::RestApi
+    Properties:
+      Description: REST API for Unicorn Stats
+      EndpointConfiguration:
+        Types:
+          - REGIONAL
+      Name: mock-api
 
-#   UnicornStatsApi:
-#     Type: AWS::ApiGateway::RestApi
-#     Properties:
-#       Description: REST API for Unicorn Stats
-#       EndpointConfiguration:
-#         Types:
-#           - REGIONAL
-#       Name: mock-api
+  WellKnownResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      ParentId: !GetAtt UnicornStatsApi.RootResourceId
+      PathPart: '.well-known'
+      RestApiId: !GetAtt UnicornStatsApi.RestApiId
 
-#   WellKnownResource:
-#     Type: AWS::ApiGateway::Resource
-#     Properties:
-#       ParentId: !GetAtt UnicornStatsApi.RootResourceId
-#       PathPart: '.well-known'
-#       RestApiId: !GetAtt UnicornStatsApi.RestApiId
+  UnicornsResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      ParentId: !GetAtt UnicornStatsApi.RootResourceId
+      PathPart: 'unicorns'
+      RestApiId: !GetAtt UnicornStatsApi.RestApiId
 
-#   UnicornsResource:
-#     Type: AWS::ApiGateway::Resource
-#     Properties:
-#       ParentId: !GetAtt UnicornStatsApi.RootResourceId
-#       PathPart: 'unicorns'
-#       RestApiId: !GetAtt UnicornStatsApi.RestApiId
+  SingleUnicornResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      ParentId: !Ref UnicornsResource
+      PathPart: '{unicorn-id}'
+      RestApiId: !GetAtt UnicornStatsApi.RestApiId
 
-#   SingleUnicornResource:
-#     Type: AWS::ApiGateway::Resource
-#     Properties:
-#       ParentId: !Ref UnicornsResource
-#       PathPart: '{unicorn-id}'
-#       RestApiId: !GetAtt UnicornStatsApi.RestApiId
+  GetUnicornsMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      AuthorizationType: NONE
+      HttpMethod: GET
+      Integration:
+        Credentials: !GetAtt AdminRole.Arn
+        IntegrationHttpMethod: POST
+        IntegrationResponses:
+          - StatusCode: 200
+            SelectionPattern: '2\d{2}'
+            ResponseTemplates:
+              application/json: |
+                #set($inputRoot = $input.path('$'))
+                {
+                "unicorns": [
+                 #foreach($elem in $inputRoot.Items)
+                 {
+                  "unicornId": "$elem.UnicornId.S",
+                  "unicornName": "$elem.UnicornName.S",
+                  "unicornClass": "$elem.UnicornClass.S",
+                  "hornCount": "$elem.HornCount.N",
+                  "color": "$elem.Color.S",
+                  "temperament": "$elem.Temperament.S",
+                  "mass": "$elem.Mass.S"
+                 }#if($foreach.hasNext),
+                 #end
+                #end
+                ]
+                }
 
-#   GetUnicornsMethod:
-#     Type: AWS::ApiGateway::Method
-#     Properties:
-#       AuthorizationType: NONE
-#       HttpMethod: GET
-#       Integration:
-#         Credentials: !GetAtt AdminRole.Arn
-#         IntegrationHttpMethod: POST
-#         IntegrationResponses:
-#           - StatusCode: 200
-#             SelectionPattern: '2\d{2}'
-#             ResponseTemplates:
-#               application/json: |
-#                 #set($inputRoot = $input.path('$'))
-#                 {
-#                 "unicorns": [
-#                  #foreach($elem in $inputRoot.Items)
-#                  {
-#                   "unicornId": "$elem.UnicornId.S",
-#                   "unicornName": "$elem.UnicornName.S",
-#                   "unicornClass": "$elem.UnicornClass.S",
-#                   "hornCount": "$elem.HornCount.N",
-#                   "color": "$elem.Color.S",
-#                   "temperament": "$elem.Temperament.S",
-#                   "mass": "$elem.Mass.S"
-#                  }#if($foreach.hasNext),
-#                  #end
-#                 #end
-#                 ]
-#                 }
+          - StatusCode: 500
+            SelectionPattern: '5\d{2}'
+            ResponseTemplates:
+              application/json: "{\"message\": \"Internal Server Error\"}"
+        PassthroughBehavior: WHEN_NO_MATCH
+        RequestParameters:
+          integration.request.header.X-Amz-Target: "'DynamoDB_20120810.Scan'"
+          integration.request.header.Content-Type: "'application/x-amz-json-1.0'"
+        RequestTemplates:
+          application/json: !Sub |
+            {
+                "TableName": "${UnicornTable}"
+            }
+        Type: AWS
+        Uri: "arn:aws:apigateway:us-west-2:dynamodb:path//"
+        TimeoutInMillis: 29000
+      MethodResponses:
+        - 
+          ResponseModels:
+            application/json: !Ref GetUnicornsResponseModel
+          StatusCode: 200
+          ResponseParameters:
+            method.response.header.Content-Type: "application/json"
+        - 
+          StatusCode: 500
+      OperationName: GetUnicorns
+      ResourceId: !Ref UnicornsResource
+      RestApiId: !GetAtt UnicornStatsApi.RestApiId
 
-#           - StatusCode: 500
-#             SelectionPattern: '5\d{2}'
-#             ResponseTemplates:
-#               application/json: "{\"message\": \"Internal Server Error\"}"
-#         PassthroughBehavior: WHEN_NO_MATCH
-#         RequestParameters:
-#           integration.request.header.X-Amz-Target: "'DynamoDB_20120810.Scan'"
-#           integration.request.header.Content-Type: "'application/x-amz-json-1.0'"
-#         RequestTemplates:
-#           application/json: !Sub |
-#             {
-#                 "TableName": "${UnicornTable}"
-#             }
-#         Type: AWS
-#         Uri: "arn:aws:apigateway:us-west-2:dynamodb:path//"
-#         TimeoutInMillis: 29000
-#       MethodResponses:
-#         - 
-#           ResponseModels:
-#             application/json: !Ref GetUnicornsResponseModel
-#           StatusCode: 200
-#           ResponseParameters:
-#             method.response.header.Content-Type: "application/json"
-#         - 
-#           StatusCode: 500
-#       OperationName: GetUnicorns
-#       ResourceId: !Ref UnicornsResource
-#       RestApiId: !GetAtt UnicornStatsApi.RestApiId
+  PutUnicornMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      AuthorizationType: NONE
+      HttpMethod: POST
+      Integration:
+        Credentials: !GetAtt AdminRole.Arn
+        IntegrationHttpMethod: POST
+        IntegrationResponses:
+          - StatusCode: 200
+            SelectionPattern: '2\d{2}'
+            ResponseTemplates:
+              application/json: "{}"
+          - StatusCode: 500
+            SelectionPattern: '5\d{2}'
+            ResponseTemplates:
+              application/json: "{\"message\": \"Internal Server Error\"}"
+        PassthroughBehavior: WHEN_NO_MATCH
+        RequestParameters:
+          integration.request.header.X-Amz-Target: "'DynamoDB_20120810.PutItem'"
+          integration.request.header.Content-Type: "'application/x-amz-json-1.0'"
+        RequestTemplates:
+          application/json: !Sub |
+            #set($inputRoot = $input.path('$'))
+            { 
+                "TableName": "${UnicornTable}",
+                "Item": {
+                  "UnicornId": {
+                    "S": "$inputRoot.unicornId"
+                  },
+                  "UnicornName": {
+                    "S": "$inputRoot.unicornName"
+                  },
+                  "UnicornClass": {
+                    "S": "$inputRoot.unicornClass"
+                  },
+                  "HornCount": {
+                    "N": "$inputRoot.hornCount"
+                  },
+                  "Color": {
+                    "S": "$inputRoot.color"
+                  },
+                  "Temperament": {
+                    "S": "$inputRoot.temperament"
+                  },
+                  "Mass": {
+                    "S": "$inputRoot.mass"
+                  }
+                }
+            }
+        Type: AWS
+        Uri: "arn:aws:apigateway:us-west-2:dynamodb:path//"
+        TimeoutInMillis: 29000
+      MethodResponses:
+        - 
+          # ResponseModels:
+          #   application/json: !Ref GetUnicornsResponseModel
+          StatusCode: 200
+          ResponseParameters:
+            method.response.header.Content-Type: "application/json"
+        - 
+          # ResponseModels:
+          #   application/json: !Ref UnicornModel
+          #   application/json: '{}'
+          StatusCode: 500
+      OperationName: GetUnicorns
+      ResourceId: !Ref UnicornsResource
+      RestApiId: !GetAtt UnicornStatsApi.RestApiId
 
-#   PutUnicornMethod:
-#     Type: AWS::ApiGateway::Method
-#     Properties:
-#       AuthorizationType: NONE
-#       HttpMethod: POST
-#       Integration:
-#         Credentials: !GetAtt AdminRole.Arn
-#         IntegrationHttpMethod: POST
-#         IntegrationResponses:
-#           - StatusCode: 200
-#             SelectionPattern: '2\d{2}'
-#             ResponseTemplates:
-#               application/json: "{}"
-#           - StatusCode: 500
-#             SelectionPattern: '5\d{2}'
-#             ResponseTemplates:
-#               application/json: "{\"message\": \"Internal Server Error\"}"
-#         PassthroughBehavior: WHEN_NO_MATCH
-#         RequestParameters:
-#           integration.request.header.X-Amz-Target: "'DynamoDB_20120810.PutItem'"
-#           integration.request.header.Content-Type: "'application/x-amz-json-1.0'"
-#         RequestTemplates:
-#           application/json: !Sub |
-#             #set($inputRoot = $input.path('$'))
-#             { 
-#                 "TableName": "${UnicornTable}",
-#                 "Item": {
-#                   "UnicornId": {
-#                     "S": "$inputRoot.unicornId"
-#                   },
-#                   "UnicornName": {
-#                     "S": "$inputRoot.unicornName"
-#                   },
-#                   "UnicornClass": {
-#                     "S": "$inputRoot.unicornClass"
-#                   },
-#                   "HornCount": {
-#                     "N": "$inputRoot.hornCount"
-#                   },
-#                   "Color": {
-#                     "S": "$inputRoot.color"
-#                   },
-#                   "Temperament": {
-#                     "S": "$inputRoot.temperament"
-#                   },
-#                   "Mass": {
-#                     "S": "$inputRoot.mass"
-#                   }
-#                 }
-#             }
-#         Type: AWS
-#         Uri: "arn:aws:apigateway:us-west-2:dynamodb:path//"
-#         TimeoutInMillis: 29000
-#       MethodResponses:
-#         - 
-#           # ResponseModels:
-#           #   application/json: !Ref GetUnicornsResponseModel
-#           StatusCode: 200
-#           ResponseParameters:
-#             method.response.header.Content-Type: "application/json"
-#         - 
-#           # ResponseModels:
-#           #   application/json: !Ref UnicornModel
-#           #   application/json: '{}'
-#           StatusCode: 500
-#       OperationName: GetUnicorns
-#       ResourceId: !Ref UnicornsResource
-#       RestApiId: !GetAtt UnicornStatsApi.RestApiId
+  GetSingleUnicornMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      AuthorizationType: NONE
+      HttpMethod: GET
+      Integration:
+        Credentials: !GetAtt AdminRole.Arn
+        IntegrationHttpMethod: POST
+        IntegrationResponses:
+          - StatusCode: 200
+            SelectionPattern: '2\d{2}'
+            ResponseTemplates:
+              application/json: |
+                #set($inputRoot = $input.path('$'))
+                {
+                  "unicornId": "$inputRoot.Item.UnicornId.S",
+                  "unicornName": "$inputRoot.Item.UnicornName.S",
+                  "unicornClass": "$inputRoot.Item.UnicornClass.S",
+                  "hornCount": "$inputRoot.Item.HornCount.N",
+                  "color": "$inputRoot.Item.Color.S",
+                  "temperament": "$inputRoot.Item.Temperament.S",
+                  "mass": "$inputRoot.Item.Mass.S"
+                }
+          - StatusCode: 500
+            SelectionPattern: '5\d{2}'
+            ResponseTemplates:
+              application/json: "{\"message\": \"Internal Server Error\"}"
+        PassthroughBehavior: WHEN_NO_MATCH
+        RequestParameters:
+          integration.request.header.X-Amz-Target: "'DynamoDB_20120810.GetItem'"
+          integration.request.header.Content-Type: "'application/x-amz-json-1.0'"
+        RequestTemplates:
+          application/json: !Sub |
+            {
+                "TableName": "${UnicornTable}",
+                "Key": {
+                    "UnicornId": {
+                        "S": "$input.params('unicorn-id')"
+                    }
+                }
+            }
+        Type: AWS
+        Uri: "arn:aws:apigateway:us-west-2:dynamodb:path//"
+        TimeoutInMillis: 29000
+      MethodResponses:
+        - 
+          ResponseModels:
+            application/json: !Ref UnicornModel
+          StatusCode: 200
+          ResponseParameters:
+            method.response.header.Content-Type: "application/json"
+        - 
+          # ResponseModels:
+          #   application/json: !Ref UnicornModel
+          #   application/json: '{}'
+          StatusCode: 500
+      OperationName: GetUnicornById
+      ResourceId: !Ref SingleUnicornResource
+      RestApiId: !GetAtt UnicornStatsApi.RestApiId
 
-#   GetSingleUnicornMethod:
-#     Type: AWS::ApiGateway::Method
-#     Properties:
-#       AuthorizationType: NONE
-#       HttpMethod: GET
-#       Integration:
-#         Credentials: !GetAtt AdminRole.Arn
-#         IntegrationHttpMethod: POST
-#         IntegrationResponses:
-#           - StatusCode: 200
-#             SelectionPattern: '2\d{2}'
-#             ResponseTemplates:
-#               application/json: |
-#                 #set($inputRoot = $input.path('$'))
-#                 {
-#                   "unicornId": "$inputRoot.Item.UnicornId.S",
-#                   "unicornName": "$inputRoot.Item.UnicornName.S",
-#                   "unicornClass": "$inputRoot.Item.UnicornClass.S",
-#                   "hornCount": "$inputRoot.Item.HornCount.N",
-#                   "color": "$inputRoot.Item.Color.S",
-#                   "temperament": "$inputRoot.Item.Temperament.S",
-#                   "mass": "$inputRoot.Item.Mass.S"
-#                 }
-#           - StatusCode: 500
-#             SelectionPattern: '5\d{2}'
-#             ResponseTemplates:
-#               application/json: "{\"message\": \"Internal Server Error\"}"
-#         PassthroughBehavior: WHEN_NO_MATCH
-#         RequestParameters:
-#           integration.request.header.X-Amz-Target: "'DynamoDB_20120810.GetItem'"
-#           integration.request.header.Content-Type: "'application/x-amz-json-1.0'"
-#         RequestTemplates:
-#           application/json: !Sub |
-#             {
-#                 "TableName": "${UnicornTable}",
-#                 "Key": {
-#                     "UnicornId": {
-#                         "S": "$input.params('unicorn-id')"
-#                     }
-#                 }
-#             }
-#         Type: AWS
-#         Uri: "arn:aws:apigateway:us-west-2:dynamodb:path//"
-#         TimeoutInMillis: 29000
-#       MethodResponses:
-#         - 
-#           ResponseModels:
-#             application/json: !Ref UnicornModel
-#           StatusCode: 200
-#           ResponseParameters:
-#             method.response.header.Content-Type: "application/json"
-#         - 
-#           # ResponseModels:
-#           #   application/json: !Ref UnicornModel
-#           #   application/json: '{}'
-#           StatusCode: 500
-#       OperationName: GetUnicornById
-#       ResourceId: !Ref SingleUnicornResource
-#       RestApiId: !GetAtt UnicornStatsApi.RestApiId
+  GetUnicornsResponseModel:
+    Type: AWS::ApiGateway::Model
+    Properties:
+      ContentType: 'application/json'
+      RestApiId: !GetAtt UnicornStatsApi.RestApiId
+      Name: GetUnicornsResponseModel
+      Schema: {
+        "title": "GetUnicornsResponse",
+        "type": "object",
+        "properties": {
+          "unicorns": {
+            "type": "array",
+            "description": "An array of unicorns",
+            "items": {
+              "$ref": !Sub "https://apigateway.amazonaws.com/restapis/${UnicornStatsApi.RestApiId}/models/${UnicornModel}"
+            }
+          }
+        }
+      }
 
-#   GetUnicornsResponseModel:
-#     Type: AWS::ApiGateway::Model
-#     Properties:
-#       ContentType: 'application/json'
-#       RestApiId: !GetAtt UnicornStatsApi.RestApiId
-#       Name: GetUnicornsResponseModel
-#       Schema: {
-#         "title": "GetUnicornsResponse",
-#         "type": "object",
-#         "properties": {
-#           "unicorns": {
-#             "type": "array",
-#             "description": "An array of unicorns",
-#             "items": {
-#               "$ref": !Sub "https://apigateway.amazonaws.com/restapis/${UnicornStatsApi.RestApiId}/models/${UnicornModel}"
-#             }
-#           }
-#         }
-#       }
+  UnicornModel:
+    Type: AWS::ApiGateway::Model
+    Properties:
+      ContentType: 'application/json'
+      RestApiId: !GetAtt UnicornStatsApi.RestApiId
+      Name: UnicornModel
+      Schema: {
+        "title": "Unicorn",
+        "type": "object",
+        "properties": {
+          "unicornName": {
+            "type": "string",
+            "description": "The unicorn's name."
+          },
+          "unicornId": {
+            "type": "string",
+            "description": "The unicorn's ID number."
+          },
+          "unicornClass": {
+            "type": "string",
+            "description": "The type of Unicorn."
+          },
+          "hornCount": {
+            "type": "integer",
+            "description": "Number of horns the unicorn has"
+          },
+          "color": {
+            "type": "string",
+            "description": "the unicorn's color"
+          },
+          "temperament": {
+            "type": "string",
+            "enum": ["friendly", "not friendly", "very not friendly"],
+            "description": "how friendly the unicorn is"
+          },
+          "mass": {
+            "type": "number",
+            "description": "The mass of the unicorn"
+          }
+        }
+      }
 
-#   UnicornModel:
-#     Type: AWS::ApiGateway::Model
-#     Properties:
-#       ContentType: 'application/json'
-#       RestApiId: !GetAtt UnicornStatsApi.RestApiId
-#       Name: UnicornModel
-#       Schema: {
-#         "title": "Unicorn",
-#         "type": "object",
-#         "properties": {
-#           "unicornName": {
-#             "type": "string",
-#             "description": "The unicorn's name."
-#           },
-#           "unicornId": {
-#             "type": "string",
-#             "description": "The unicorn's ID number."
-#           },
-#           "unicornClass": {
-#             "type": "string",
-#             "description": "The type of Unicorn."
-#           },
-#           "hornCount": {
-#             "type": "integer",
-#             "description": "Number of horns the unicorn has"
-#           },
-#           "color": {
-#             "type": "string",
-#             "description": "the unicorn's color"
-#           },
-#           "temperament": {
-#             "type": "string",
-#             "enum": ["friendly", "not friendly", "very not friendly"],
-#             "description": "how friendly the unicorn is"
-#           },
-#           "mass": {
-#             "type": "number",
-#             "description": "The mass of the unicorn"
-#           }
-#         }
-#       }
+  ApiGatewayProdStage:
+    Type: AWS::ApiGateway::Stage
+    Properties:
+      Description: Prod
+      DeploymentId: !GetAtt PLACEHOLDER_ApiGatewayDeployment_PlACEHOLDER.DeploymentId
+      RestApiId: !GetAtt UnicornStatsApi.RestApiId
+      StageName: Prod
 
-#   ApiGatewayProdStage:
-#     Type: AWS::ApiGateway::Stage
-#     Properties:
-#       Description: Prod
-#       DeploymentId: !GetAtt PLACEHOLDER_ApiGatewayDeployment_PlACEHOLDER.DeploymentId
-#       RestApiId: !GetAtt UnicornStatsApi.RestApiId
-#       StageName: Prod
+  PLACEHOLDER_ApiGatewayDeployment_PlACEHOLDER:
+    Type: AWS::ApiGateway::Deployment
+    DependsOn: 
+     - GetSingleUnicornMethod
+     - GetUnicornsMethod
+     - PutUnicornMethod
+    Properties:
+      Description: Mock API Deployment
+      RestApiId: !GetAtt UnicornStatsApi.RestApiId
 
-#   PLACEHOLDER_ApiGatewayDeployment_PlACEHOLDER:
-#     Type: AWS::ApiGateway::Deployment
-#     DependsOn: 
-#      - GetSingleUnicornMethod
-#      - GetUnicornsMethod
-#      - PutUnicornMethod
-#     Properties:
-#       Description: Mock API Deployment
-#       RestApiId: !GetAtt UnicornStatsApi.RestApiId
-
-# Outputs:
-#   UnicornStatsApiId:
-#     Description: Logical ID for the REST API
-#     Value: !GetAtt UnicornStatsApi.RestApiId
-#     Export:
-#       Name: UnicornStatsApiId
-#   UnicornStatsStageName:
-#     Description: Stage Name for the currently deployd REST API
-#     Value: !Ref ApiGatewayProdStage
-#   WellKnownResourceId:
-#     Description: Logical ID for the REST API
-#     Value: !Ref WellKnownResource
-#     Export:
-#       Name: WellKnownResourceId
-#   UnicornStatsApiRootResourceId:
-#     Description: Logical ID for the REST API
-#     Value: !GetAtt UnicornStatsApi.RootResourceId
-#     Export:
-#       Name: UnicornStatsApiRootResourceId
+Outputs:
+  UnicornStatsApiId:
+    Description: Logical ID for the REST API
+    Value: !GetAtt UnicornStatsApi.RestApiId
+    Export:
+      Name: UnicornStatsApiId
+  UnicornStatsStageName:
+    Description: Stage Name for the currently deployd REST API
+    Value: !Ref ApiGatewayProdStage
+  WellKnownResourceId:
+    Description: Logical ID for the REST API
+    Value: !Ref WellKnownResource
+    Export:
+      Name: WellKnownResourceId
+  UnicornStatsApiRootResourceId:
+    Description: Logical ID for the REST API
+    Value: !GetAtt UnicornStatsApi.RootResourceId
+    Export:
+      Name: UnicornStatsApiRootResourceId
