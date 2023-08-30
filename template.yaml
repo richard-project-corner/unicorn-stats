@@ -8,7 +8,6 @@ Resources:
   #     HostedZoneConfig: 
   #       Comment: 'My hosted zone for ChatGPT Plugin'
   #     Name: plugin.chatgpt.rboyd.dev
-  #     DeletionPolicy: Retain # Just because Richard is a dummy
 
   UnicornTable: 
     Type: AWS::DynamoDB::Table
@@ -299,11 +298,55 @@ Resources:
           ResponseParameters:
             method.response.header.Content-Type: "application/json"
         - 
-          # ResponseModels:
-          #   application/json: !Ref UnicornModel
-          #   application/json: '{}'
           StatusCode: 500
       OperationName: GetUnicornById
+      ResourceId: !Ref SingleUnicornResource
+      RestApiId: !GetAtt UnicornStatsApi.RestApiId
+
+  EuthanizeUnicornMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      AuthorizationType: NONE
+      HttpMethod: DELETE
+      Integration:
+        Credentials: !GetAtt AdminRole.Arn
+        IntegrationHttpMethod: POST
+        IntegrationResponses:
+          - StatusCode: 200
+            SelectionPattern: '2\d{2}'
+            ResponseTemplates:
+              application/json: '{}'
+          - StatusCode: 500
+            SelectionPattern: '5\d{2}'
+            ResponseTemplates:
+              application/json: "{\"message\": \"Internal Server Error\"}"
+        PassthroughBehavior: WHEN_NO_MATCH
+        RequestParameters:
+          integration.request.header.X-Amz-Target: "'DynamoDB_20120810.DeleteItem'"
+          integration.request.header.Content-Type: "'application/x-amz-json-1.0'"
+        RequestTemplates:
+          application/json: !Sub |
+            {
+                "TableName": "${UnicornTable}",
+                "Key": {
+                    "UnicornId": {
+                        "S": "$input.params('unicorn-id')"
+                    }
+                }
+            }
+        Type: AWS
+        Uri: "arn:aws:apigateway:us-west-2:dynamodb:path//"
+        TimeoutInMillis: 29000
+      MethodResponses:
+        - 
+          ResponseModels:
+            application/json: !Ref UnicornModel
+          StatusCode: 200
+          ResponseParameters:
+            method.response.header.Content-Type: "application/json"
+        - 
+          StatusCode: 500
+      OperationName: EuthanizeUnicornById
       ResourceId: !Ref SingleUnicornResource
       RestApiId: !GetAtt UnicornStatsApi.RestApiId
 
@@ -383,6 +426,7 @@ Resources:
      - GetSingleUnicornMethod
      - GetUnicornsMethod
      - PutUnicornMethod
+     - EuthanizeUnicornMethod
     Properties:
       Description: Mock API Deployment
       RestApiId: !GetAtt UnicornStatsApi.RestApiId

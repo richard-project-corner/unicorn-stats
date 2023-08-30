@@ -21,25 +21,26 @@ Actions:
   #   Inputs:
   #     Sources:
   #       - WorkflowSource
-  # CreateLogin:
-  #   Identifier: aws/build@v1.0.0
-  #   Inputs:
-  #     Sources:
-  #       - WorkflowSource
-  #   Compute:
-  #     Type: EC2
-  #   Environment:
-  #     Name: PreProd
-  #     Connections:
-  #       - Name: '617267062318'
-  #         Role: CodeCatalystWorkflowDevelopmentRole-CodeCornerProjectCorner
-  #   Configuration:
-  #     Steps:
-  #       - Run: pip install -r ./unicorn-stats-api/tests/requirements.txt --user
-  #       - Run: export REGION=us-west-2
-  #       - Run: export ACCESS_KEY_ID=${Secrets.AccessKeyID}
-  #       - Run: export SECRET_ACCESS_KEY=${Secrets.SecretAccessKey}
-  #       - Run: python ./unicorn-stats-api/tests/unit/create_login.py
+
+  CreateLogin:
+    Identifier: aws/build@v1.0.0
+    Inputs:
+      Sources:
+        - WorkflowSource
+    Compute:
+      Type: EC2
+    Environment:
+      Name: PreProd
+      Connections:
+        - Name: '617267062318'
+          Role: CodeCatalystWorkflowDevelopmentRole-CodeCornerProjectCorner
+    Configuration:
+      Steps:
+        - Run: pip install -r ./unicorn-stats-api/tests/requirements.txt --user
+        - Run: export REGION=us-west-2
+        - Run: export ACCESS_KEY_ID=${Secrets.AccessKeyID}
+        - Run: export SECRET_ACCESS_KEY=${Secrets.SecretAccessKey}
+        - Run: python ./unicorn-stats-api/tests/unit/create_login.py
   Deploy:
     Identifier: aws/build@v1.0.0
     Inputs:
