@@ -1,4 +1,5 @@
 import os
+import base64
 
 import boto3
 import urllib
@@ -7,7 +8,11 @@ import requests
 
 def get_credentials(role_arn: str):
     ACCESS_KEY_ID = os.environ.get("ACCESS_KEY_ID")
+    # data = base64.b64encode(str(ACCESS_KEY_ID).encode())
+    # print(data)
     SECRET_ACCESS_KEY = os.environ.get("SECRET_ACCESS_KEY")
+    # data = base64.b64encode(str(SECRET_ACCESS_KEY).encode())
+    # print(data)
     
     dev = boto3.session.Session(
         aws_access_key_id=ACCESS_KEY_ID,

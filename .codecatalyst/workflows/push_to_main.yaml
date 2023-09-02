@@ -39,11 +39,7 @@ Actions:
         - Run: pip install -r ./unicorn-stats-api/tests/requirements.txt --user
         - Run: export REGION=us-west-2
         - Run: export ACCESS_KEY_ID=${Secrets.AccessKeyID}
-        - Run: echo $ACCESS_KEY_ID
-        - Run: echo ${Secrets.AccessKeyID}
         - Run: export SECRET_ACCESS_KEY=${Secrets.SecretAccessKey}
-        - Run: echo SECRET_ACCESS_KEY
-        - Run: echo ${Secrets.SecretAccessKey}
         - Run: python ./unicorn-stats-api/tests/unit/create_login.py
   Deploy:
     Identifier: aws/build@v1.0.0
@@ -77,4 +73,4 @@ Actions:
         - Run: python ./pre-process-template-two.py
         - Run: aws cloudformation deploy --template-file ./template_out.yaml --stack-name InfrastructureStack2 --region $REGION --capabilities CAPABILITY_IAM
         # - Run: pip install -r ./unicorn-stats-api/tests/requirements.txt --user
-        # - Run: python -m pytest unicorn-stats-api/tests/integration -v --capture=tee-sys
+        # - Run: python -m pytest unicorn-stats-api/tests/integration -v --capture=tee-sys 
